@@ -1,4 +1,5 @@
-
+// jshint strict:false
+// global angular, _, moment
 
 // data terms of use spec for 1.0
 
