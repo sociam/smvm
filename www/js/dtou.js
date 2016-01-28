@@ -39,18 +39,18 @@ var DToUConstraints = {
 
 var example = {
 	// describes the item annotated
-	author:'',
+	author:'http://hip.cat/emax#id',
 
 	// describes the item being annotated
-	src:'', // optional
-	srcHash:'', // optional
+	src:'http://hip.cat/emax/microblogs/blahblah1', // optional
+	srcHash:'18277823872k2323b', // optional
 
 	constraints: [
 		// put a constraint on it for showing only during feb
 		DToUConstraints.interval(moment('2016-02-01'), moment('2016-02-28')),
 		// put an authorial constraints on it
 		DToUConstraints.audience('http://hip.cat/emax')
-	]
+	],
 	// 
 	signature:'' // this dtou signed and certified by the author
 };
