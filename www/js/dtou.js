@@ -1,5 +1,5 @@
+/* global _, moment */
 // jshint strict:false
-// global angular, _, moment
 
 // data terms of use spec for 1.0
 
@@ -34,11 +34,10 @@ var DToUConstraints = {
 			};
 		},
 		until:function(d) {
+			var dm = moment(d);
 			return function() { 
-				var nowm = moment(),
-					sm = moment().hours(t1),
-					em = moment().hours(t2);
-				return em.isAfter(sm) && nowm.isBetween(sm,em);
+				var nowm = moment();
+				return nowm.isBefore(dm);
 			};
 		}
 	},
@@ -48,14 +47,14 @@ var DToUConstraints = {
 			return function(context) { return context.reader.id === personid; };
 		},
 		minAge:function(yrs) {
-			return function(context) { return contxt.reader.age >= yrs; }; 
+			return function(context) { return context.reader.age >= yrs; }; 
 		}
 	},
 	presentational: {
 		isApp:function(appid) {
 			return function(context) { return context.app.id == appid; };
 		},
-		isApp:function(appid) {
+		isAppVersion:function(appid) {
 			return function(context) { return context.app.id == appid;	};
 		},
 		minScreenWidth:function(px) {
@@ -71,7 +70,7 @@ var example = {
 
 	// describes the item being annotated
 	src:'http://hip.cat/emax/microblogs/blahblah1', // optional
-	srcHash:'18277823872k2323b', // optional
+	src_signature:'18277823872k2323b', // optional
 
 	constraints: [
 		// put a constraint on it for showing only during feb
