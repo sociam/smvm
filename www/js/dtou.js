@@ -1,6 +1,6 @@
 
 
-// spec
+// data terms of use spec for 1.0
 
 var DToUConstraints = {
 	temporal: {
@@ -51,6 +51,8 @@ var example = {
 		// put an authorial constraints on it
 		DToUConstraints.audience('http://hip.cat/emax')
 	],
-	// 
+
+	// this dtou declaration itself needs to be signed by the author
+	// to certify it is untampered.
 	signature:'' // this dtou signed and certified by the author
 };
