@@ -1,7 +1,6 @@
 
 
 // data terms of use spec for 1.0
-
 var DToUConstraints = {
 	temporal: {
 		interval:function(s,e) {
@@ -49,7 +48,7 @@ var example = {
 		// put a constraint on it for showing only during feb
 		DToUConstraints.interval(moment('2016-02-01'), moment('2016-02-28')),
 		// put an authorial constraints on it
-		DToUConstraints.audience('http://hip.cat/emax')
+		DToUConstraints.audience.isPerson('http://hip.cat/emax')
 	],
 
 	// this dtou declaration itself needs to be signed by the author
