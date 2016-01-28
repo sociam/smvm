@@ -1,7 +1,14 @@
 
 
 // data terms of use spec for 1.0
+
+// Core Predicates for Data Terms of Use, divided into categories
 var DToUConstraints = {
+
+	// temporal constraints describe when a particular item 
+	// should be experienced.  we support absolute time intervals,
+	// or recurring time intervals (e.g. every Thursday or "every day 
+	// between 8am and 10am").
 	temporal: {
 		interval:function(s,e) {
 			var sm = moment(s), em = moment(e);
@@ -17,10 +24,30 @@ var DToUConstraints = {
 				return nowm.getDay() == day;
 			};
 		},
+		betweenHourMins:function(ts,te) {
+			// time start / end is like "07:00", formatted hh:mm
+			return function() { 
+				var nowm = moment(), sm = moment(ts,"hh:mm"),
+					em = moment(te,"hh:mm");
+				return em.isAfter(sm) && nowm.isBetween(sm,em);
+			};
+		},
+		until:function(d) {
+			return function() { 
+				var nowm = moment(),
+					sm = moment().hours(t1),
+					em = moment().hours(t2);
+				return em.isAfter(sm) && nowm.isBetween(sm,em);
+			};
+		}
 	},
+	// describes who the audience should be
 	audience: {
 		isPerson:function(personid) {
 			return function(context) { return context.reader.id === personid; };
+		},
+		minAge:function(yrs) {
+			return function(context) { return contxt.reader.age >= yrs; }; 
 		}
 	},
 	presentational: {
@@ -36,6 +63,7 @@ var DToUConstraints = {
 	}
 }
 
+/// example declaration
 var example = {
 	// describes the item annotated
 	author:'http://hip.cat/emax#id',
