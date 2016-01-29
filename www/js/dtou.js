@@ -11,51 +11,58 @@ var DToUConstraints = {
 	// or recurring time intervals (e.g. every Thursday or "every day 
 	// between 8am and 10am").
 	temporal: {
-		interval:function(s,e) {
-			var sm = moment(s), em = moment(e);
+		interval:function(params) {
+			var sm = moment(params.start), em = moment(params.end);
 			return function() {
 				var nowm = moment();
 				return em.isAfter(sm) && nowm.isBetween(sm,em);
 			};
 		},
-		dayofWeek:function(day) {
+		dayofWeek:function(params) {
 			// day is an integer : 0..6 (todo change to strings)
 			return function() { 
 				var nowm = new Date();
-				return nowm.getDay() == day;
+				return nowm.getDay() == params.day;
 			};
 		},
-		betweenHourMins:function(ts,te) {
+		betweenHourMins:function(params) {
 			// time start / end is like "07:00", formatted hh:mm
 			return function() { 
-				var nowm = moment(), sm = moment(ts,"hh:mm"),
-					em = moment(te,"hh:mm");
+				var nowm = moment(), 
+					sm = moment(params.start,"hh:mm"),
+					em = moment(params.end,"hh:mm");
 				return em.isAfter(sm) && nowm.isBetween(sm,em);
 			};
 		},
-		until:function(d) {
+		until:function(params) {
 			var dm = moment(d);
 			return function() { 
 				var nowm = moment();
-				return nowm.isBefore(dm);
+				return nowm.isBefore(hamish.date);
 			};
 		}
 	},
 	// describes who the audience should be
-	audience: {
-		isPerson:function(personid) {
+	recipient: {
+		person:function(personid) {
 			return function(context) { return context.reader.id === personid; };
 		},
 		minAge:function(yrs) {
 			return function(context) { return context.reader.age >= yrs; }; 
 		}
 	},
+	location: {
+		nearLatLng:function(lat,lng) { 
+			/* todo */
+			return function(context) {};
+		}
+	},
 	presentational: {
-		isApp:function(appid) {
-			return function(context) { return context.app.id == appid; };
+		isApp:function(params) {
+			return function(context) { return context.app.id == params.appid; };
 		},
 		isAppVersion:function(appid) {
-			return function(context) { return context.app.id == appid;	};
+			return function(context) { return context.app.id == params.appid && context.app.version == params.appversion; };
 		},
 		minScreenWidth:function(px) {
 			return function(context) { return context.screen.width >= px; };
@@ -74,10 +81,10 @@ var example = {
 
 	constraints: [
 		// put a constraint on it for showing only during feb
-		DToUConstraints.interval(moment('2016-02-01'), moment('2016-02-28')),
-		// put an authorial constraints on it
-		DToUConstraints.audience.isPerson('http://hip.cat/emax')
-	],
+		{ family:'temporal', type:'interval',from:'2016-02-01', to: '2016-02-28' },
+		{ family:'recipient', type:'person', person:'http://hip.cat/emax'	},
+		{ family:'location', type: 'nearLatLng', lat: 51.7721340, lng: -1.2105430 }
+	], 
 
 	// this dtou declaration itself needs to be signed by the author
 	// to certify it is untampered.

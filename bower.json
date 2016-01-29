@@ -1,0 +1,22 @@
+{
+  "name": "SOCIAM PPDL Data Terms Microblog Client",
+  "description": "",
+  "main": "",
+  "authors": [
+    "electronic Max <electronic@gmail.com>"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/sociam/ppdl-dtou-microblog",
+  "moduleType": [],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "www/lib",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "moment": "~2.11.1"
+  }
+}
