@@ -86,6 +86,25 @@ var example = {
 		{ family:'location', type: 'nearLatLng', lat: 51.7721340, lng: -1.2105430 }
 	], 
 
+	storage: {
+		retention: 'indefinite', // until 
+		container: {
+			access:	[{value: 'open', strength:'optional'}]
+			owner:{
+				combination:'or',
+				values:[
+					{ type:'person', value:'http://hip.cat/emax' }
+					{ type:'org', value:'http://sociam.org/' }						
+				]
+			},
+			location:{}
+		},
+		replication : { 
+			min_copies:2
+		}
+	},
+
+
 	// this dtou declaration itself needs to be signed by the author
 	// to certify it is untampered.
 	signature:'' // this dtou signed and certified by the author
