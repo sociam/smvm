@@ -22,14 +22,16 @@ console.log('connecting to ', config);
 var connect = mongo.connect(config.tracker).then((tr) => {
 	console.info('connected to tracker ', config.tracker);
 	tracker = tr;
-	return mongo.connect("mongodb://localhost:27017/dtou");
-}).then((db_) => { db = db_; }).catch((err) => { console.error("could not connect to tracker"); });
+	return mongo.connect(config.db);
+}).then((db_) => { db = db_; })
+.catch((err) => { console.error("could not connect to tracker"); });
 
 connect.then(() => {
 	// insert ourselves in the tracker
 	tracker.collection('nodes').find({_id:config.owner.id}).then(function(d) {
 		// record ourselves in there:
-		var us = _.pick(config,['name','id']);
+		var us = _.pick(config,['name','id','url']);
+		console.log('our config sending >> ', us);
 		peers = (d && d.nodes || []).filter((x) => (x.id === !config.id));
 		return tracker.collection('nodes').save({_id:config.owner.id,nodes:peers.concat(us)});
 	}).then(() => {
