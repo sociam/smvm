@@ -97,13 +97,10 @@ var example = {
 					{ type:'org', value:'http://sociam.org/' }						
 				]
 			},
-			location:{}
+			location: { type:'containedin', value:'geopoliticalboundaries.com/EU'},
 		},
-		replication : { 
-			min_copies:2
-		}
+		replication : { min_copies:2 }
 	},
-
 
 	// this dtou declaration itself needs to be signed by the author
 	// to certify it is untampered.

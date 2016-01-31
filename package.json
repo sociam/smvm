@@ -1,6 +1,13 @@
-
 {
-  "name": "SOCIAM PPDL Data Terms Microblog Client",
+  "name": "ppdl-dtou-microblog",
   "description": "",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "dependencies": {
+    "body-parser": "^1.14.2",
+    "express": "^4.13.4",
+    "mongo-bluebird": "0.0.6",
+    "mongodb-bluebird": "0.0.9",
+    "multer": "^1.1.0",
+    "util-extend": "^1.0.3"
+  }
 }
