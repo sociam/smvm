@@ -52,8 +52,9 @@ connect.then(() => {
 });
 
 var askPeer = (peer, path) => {
-	var pa = peer.addrs[0];
-	var peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
+	var pa = peer.addrs[0],
+		peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
+
 	console.log('connecting peer_url ', peer_url);
 	return new Promise((acc,rej) => {
 		request({url:peer_url, timeout:1000})
@@ -82,10 +83,7 @@ app.get('/api/collections', function(req,res) {
 	return getLocalCollections().then((locals) => {
 		return Promise.all(peers.map((p) =>  askPeer(p, '/api/collections?local=true').then((x) => x && JSON.parse(x))))
 		.then((cs) => _(cs).filter((x) => x).push(locals).flatten().uniq().value())
-		.then((csuniq) => {
-			console.info('returning ', csuniq.length, csuniq);
-			res.status(200).send(JSON.stringify(csuniq));
- 		});
+		.then((csuniq) => res.status(200).send(JSON.stringify(csuniq)));
 	}); // getLocalCollections
 }); // app.get
 
@@ -111,7 +109,7 @@ var getMyInterfaces = () => {
 	var localhosts = ["127.0.0.1", "::", "::1", "fe80::1"];
 	return _(os.networkInterfaces()).values().map((x) => x.map((y) => y.address))
 		.flatten()
-		.filter((x) => localhosts.indexOf(x) < 0 && x.indexOf(':') < 0) // get rid of localhosts
+		.filter((x) => localhosts.indexOf(x) < 0 && x.indexOf(':') < 0) // get rid of localhosts, ipv6 shizzle
 		.uniq().value();
 };
 
