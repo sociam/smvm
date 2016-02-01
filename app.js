@@ -55,7 +55,14 @@ var askPeer = (peer, path) => {
 	var pa = peer.addrs[0];
 	var peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
 	console.log('connecting peer_url ', peer_url);
-	return request({url:peer_url});
+	return new Promise((acc,rej) => {
+		request({url:peer_url, timeout:1000})
+			.then(acc)
+			.catch((err) => {
+				console.error('could not connect to peer ', peer_url);
+				acc();
+			});
+		});
 };
 
 var getLocalCollections = () => {
@@ -66,7 +73,6 @@ var getLocalCollections = () => {
 
 app.get('/api/collections', function(req,res) {
 	var localOnly = url.parse(req.url, true).query.local;
-	console.log('req params local ', localOnly);
 	if (localOnly) {
 		return getLocalCollections().then((cs) => {
 			console.log('collections ', cs);
@@ -74,8 +80,8 @@ app.get('/api/collections', function(req,res) {
 		});
 	}
 	return getLocalCollections().then((locals) => {
-		return Promise.all(peers.map((p) =>  askPeer(p, '/api/collections?local=true').then((x) => JSON.parse(x))))
-		.then((cs) => _(cs).push(locals).flatten().uniq().value())
+		return Promise.all(peers.map((p) =>  askPeer(p, '/api/collections?local=true').then((x) => x && JSON.parse(x))))
+		.then((cs) => _(cs).filter((x) => x).push(locals).flatten().uniq().value())
 		.then((csuniq) => {
 			console.info('returning ', csuniq.length, csuniq);
 			res.status(200).send(JSON.stringify(csuniq));
