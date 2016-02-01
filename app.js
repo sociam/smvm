@@ -3,7 +3,7 @@
 var express = require('express'),
 	app = express(),
 	_ = require('lodash'),
-	// Promise = require('bluebird'),
+	Promise = require('bluebird'),
 	mongo = require('mongodb-bluebird'),
 	bodyParser = require('body-parser'),
 	multer = require('multer'), // v1.0.5
@@ -66,11 +66,18 @@ var askPeer = (peer, path) => {
 		});
 };
 
-var getLocalCollections = () => {
-	return db.collections().then((sC) => {
-		return sC.map((x) => x.s.name);
-	});
-};
+var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x) => x.s.name);	}),
+	getPeerCollections = (p) => askPeer(p, '/api/collections?local=true').then((x) => (x && JSON.parse(x) || [])),
+	findCollection = (cid) => {
+		return getLocalCollections().then((lCs) => {
+			if (lCs.indexOf(cid) >= 0) { return { id: config.id }; }
+			return Promise.filter(peers,
+				(p) => getPeerCollections(p).then((cs) => cs.indexOf(cid) >= 0)
+			).then((ps) => {
+				if (ps.length > 0) { return ps[0]; }
+			});
+		})
+	};
 
 app.get('/api/collections', function(req,res) {
 	var localOnly = url.parse(req.url, true).query.local;
@@ -81,12 +88,22 @@ app.get('/api/collections', function(req,res) {
 		});
 	}
 	return getLocalCollections().then((locals) => {
-		return Promise.all(peers.map((p) =>  askPeer(p, '/api/collections?local=true').then((x) => x && JSON.parse(x))))
+		return Promise.all(peers.map((p) => getPeerCollections(p)))
 		.then((cs) => _(cs).filter((x) => x).push(locals).flatten().uniq().value())
 		.then((csuniq) => res.status(200).send(JSON.stringify(csuniq)));
 	}); // getLocalCollections
 }); // app.get
 
+app.get('/api/findCollection', function(req,res) {
+	var cname = url.parse(req.url, true).query.name;
+	findCollection(cname).then((p) => {
+		console.info('peers hit for ', cname, p)
+		if (p !== undefined) {
+			return res.status(200).send(p.id);
+		}
+		return res.status(404).send('');
+	});
+});
 
 // respond with "hello world" when a GET request is made to the homepage
 // app.get('/', function(req, res) { res.send('hello world'); });
