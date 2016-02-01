@@ -1,6 +1,6 @@
 module.exports = {
 	db:'mongodb://localhost:27017/dtou',
-	tracker:'mongodb://robostar.csail.mit.edu:12345',
+	tracker:'mongodb://robostar.csail.mit.edu:12345/pies',
 	port:3000,	
 	prot: 'http',
 	name:'happy storage node',

@@ -8,11 +8,13 @@ var express = require('express'),
 	bodyParser = require('body-parser'),
 	multer = require('multer'), // v1.0.5
 	upload = multer(),
-	config = require('./config'),
+	config_file = process.argv.length > 2 ? process.argv[2] : './config',
+	config = require(config_file),
 	http = require('http'),
 	os = require('os'),
 	db, tracker, peers;
 
+console.info('initialising with config ', config_file);
 // set up middleware
 app.use(bodyParser.json()); // for parsing application/json
 
@@ -32,8 +34,9 @@ connect.then(() => {
 	// insert ourselves in the tracker
 	tracker.collection('nodes').find({_id:config.owner.id}).then(function(d) {
 		// record ourselves in there:
+		// creates { name: <nodename>, id: 'nodeid', addrs: [ { prot: 'http', host:<addr>, port:3000 } ] }
 		var us = _(config).pick(['name','id']).extend({addrs : getMyInterfaces().map((x) => ({ prot:config.prot, host: x, port: config.port }))}).value();
-		peers = (d && d.nodes || []).filter((x) => (x.id === !config.id));
+		peers = (d && d[0] && d[0].nodes || []).filter((x) => (x.id !== config.id));
 		var new_us = {_id:config.owner.id,nodes:peers.concat(us)};
 		return tracker.collection('nodes').save(new_us);
 	}).then(() => {
@@ -42,9 +45,25 @@ connect.then(() => {
 	});
 });
 
+var askPeer = (peer) => {
+	var peer_url = [peer.prot,'://',peer.host,':',''+peer.port].join('');
+	console.log('connecting peer_url ', peer_url);
+	return Promise( (acc,rej) => $.get({url:peer_url}).done(acc).fail(rej) );
+};
+
 app.get('/api/collections', function(req,res) {
-	db.collections().then((x) => {
-		res.status(200).send(x.map((x) => x.s.name));
+	var localOnly = req.params.local,
+		localC = () => { 
+			return db.collections().then((x) => {
+				res.status(200).send(x.map((x) => x.s.name));
+			});
+		};
+	if (localOnly) { return localC(); }
+	return localC.then((localC) => { 
+		return Promise.all(peers.map((p) => askPeer(p, '/api/collections?local=true'))).then((rC) => { 
+			console.info('remote Collections ', rC);
+			return localC.concat(rC);
+		});
 	});
 });
 
@@ -69,11 +88,11 @@ var getMyInterfaces = () => {
 	var localhosts = ["127.0.0.1", "::", "::1", "fe80::1"];
 	return _(os.networkInterfaces()).values().map((x) => x.map((y) => y.address))
 		.flatten()
-		.filter((x) => { console.log('checking ', x, localhosts.indexOf(x)); return localhosts.indexOf(x) < 0;}) // get rid of localhosts
+		.filter((x) => localhosts.indexOf(x) < 0) // get rid of localhosts
 		.uniq().value();
 };
 
-console.log('myinterfaces ', getMyInterfaces());
+// console.log('myinterfaces ', getMyInterfaces());
 var server = http.createServer(app);
 
 // http.createServer(app).listen(3000);
