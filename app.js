@@ -9,6 +9,8 @@ var express = require('express'),
 	multer = require('multer'), // v1.0.5
 	upload = multer(),
 	config = require('./config'),
+	http = require('http'),
+	os = require('os'),
 	db, tracker, peers;
 
 // set up middleware
@@ -30,10 +32,10 @@ connect.then(() => {
 	// insert ourselves in the tracker
 	tracker.collection('nodes').find({_id:config.owner.id}).then(function(d) {
 		// record ourselves in there:
-		var us = _.pick(config,['name','id','url']);
-		console.log('our config sending >> ', us);
+		var us = _(config).pick(['name','id']).extend({addrs : getMyInterfaces().map((x) => ({ prot:config.prot, host: x, port: config.port }))}).value();
 		peers = (d && d.nodes || []).filter((x) => (x.id === !config.id));
-		return tracker.collection('nodes').save({_id:config.owner.id,nodes:peers.concat(us)});
+		var new_us = {_id:config.owner.id,nodes:peers.concat(us)};
+		return tracker.collection('nodes').save(new_us);
 	}).then(() => {
 		// let's make contact with the peers
 		console.log('done inserting ');
@@ -41,9 +43,9 @@ connect.then(() => {
 });
 
 app.get('/api/collections', function(req,res) {
-		db.collections().then((x) => {
-			res.status(200).send(x.map((x) => x.s.name));
-		});
+	db.collections().then((x) => {
+		res.status(200).send(x.map((x) => x.s.name));
+	});
 });
 
 // respond with "hello world" when a GET request is made to the homepage
@@ -63,5 +65,19 @@ app.post('/api/:collection/:id', function(req,res) {
 	res.status(200).send('hi');
 });
 
+var getMyInterfaces = () => { 
+	var localhosts = ["127.0.0.1", "::", "::1", "fe80::1"];
+	return _(os.networkInterfaces()).values().map((x) => x.map((y) => y.address))
+		.flatten()
+		.filter((x) => { console.log('checking ', x, localhosts.indexOf(x)); return localhosts.indexOf(x) < 0;}) // get rid of localhosts
+		.uniq().value();
+};
 
-app.listen(3000);
+console.log('myinterfaces ', getMyInterfaces());
+var server = http.createServer(app);
+
+// http.createServer(app).listen(3000);
+server.listen(config.port, function() {
+	console.log('app.address ', server.address());
+	console.log();
+});

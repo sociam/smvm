@@ -5,8 +5,9 @@
   "dependencies": {
     "body-parser": "^1.14.2",
     "express": "^4.13.4",
-    "mongodb-bluebird": "",
+    "http": "0.0.0",
     "mongo-oplog": "^1.0.1",
+    "mongodb-bluebird": "",
     "multer": "^1.1.0",
     "util-extend": "^1.0.3"
   }
