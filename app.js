@@ -11,7 +11,9 @@ var express = require('express'),
 	config_file = process.argv.length > 2 ? process.argv[2] : './config',
 	config = require(config_file),
 	http = require('http'),
+	url = require('url'),
 	os = require('os'),
+	request = require('request-promise'),
 	db, tracker, peers;
 
 console.info('initialising with config ', config_file);
@@ -21,8 +23,8 @@ app.use(bodyParser.json()); // for parsing application/json
 // set up static
 app.use('/', express.static('www'));
 
-// connect to the db
-console.log('connecting to ', config);
+// connect to the db -- which is at config.db
+console.log('PIES instance:', config.id, ' port:', config.port, ' database:', config.db);
 var connect = mongo.connect(config.tracker).then((tr) => {
 	console.info('connected to tracker ', config.tracker);
 	tracker = tr;
@@ -42,30 +44,45 @@ connect.then(() => {
 	}).then(() => {
 		// let's make contact with the peers
 		console.log('done inserting ');
+
+		// test get local collections
+		getLocalCollections().then((x) => console.log('local collections ', x));
+
 	});
 });
 
-var askPeer = (peer) => {
-	var peer_url = [peer.prot,'://',peer.host,':',''+peer.port].join('');
+var askPeer = (peer, path) => {
+	var pa = peer.addrs[0];
+	var peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
 	console.log('connecting peer_url ', peer_url);
-	return Promise( (acc,rej) => $.get({url:peer_url}).done(acc).fail(rej) );
+	return request({url:peer_url});
+};
+
+var getLocalCollections = () => {
+	return db.collections().then((sC) => {
+		return sC.map((x) => x.s.name);
+	});
 };
 
 app.get('/api/collections', function(req,res) {
-	var localOnly = req.params.local,
-		localC = () => { 
-			return db.collections().then((x) => {
-				res.status(200).send(x.map((x) => x.s.name));
-			});
-		};
-	if (localOnly) { return localC(); }
-	return localC.then((localC) => { 
-		return Promise.all(peers.map((p) => askPeer(p, '/api/collections?local=true'))).then((rC) => { 
-			console.info('remote Collections ', rC);
-			return localC.concat(rC);
+	var localOnly = url.parse(req.url, true).query.local;
+	console.log('req params local ', localOnly);
+	if (localOnly) {
+		return getLocalCollections().then((cs) => {
+			console.log('collections ', cs);
+			res.status(200).send(JSON.stringify(cs));
 		});
-	});
-});
+	}
+	return getLocalCollections().then((locals) => {
+		return Promise.all(peers.map((p) =>  askPeer(p, '/api/collections?local=true').then((x) => JSON.parse(x))))
+		.then((cs) => _(cs).push(locals).flatten().uniq().value())
+		.then((csuniq) => {
+			console.info('returning ', csuniq.length, csuniq);
+			res.status(200).send(JSON.stringify(csuniq));
+ 		});
+	}); // getLocalCollections
+}); // app.get
+
 
 // respond with "hello world" when a GET request is made to the homepage
 // app.get('/', function(req, res) { res.send('hello world'); });
@@ -84,19 +101,17 @@ app.post('/api/:collection/:id', function(req,res) {
 	res.status(200).send('hi');
 });
 
-var getMyInterfaces = () => { 
+var getMyInterfaces = () => {
 	var localhosts = ["127.0.0.1", "::", "::1", "fe80::1"];
 	return _(os.networkInterfaces()).values().map((x) => x.map((y) => y.address))
 		.flatten()
-		.filter((x) => localhosts.indexOf(x) < 0) // get rid of localhosts
+		.filter((x) => localhosts.indexOf(x) < 0 && x.indexOf(':') < 0) // get rid of localhosts
 		.uniq().value();
 };
 
-// console.log('myinterfaces ', getMyInterfaces());
+console.log('myinterfaces ', getMyInterfaces());
+
 var server = http.createServer(app);
 
 // http.createServer(app).listen(3000);
-server.listen(config.port, function() {
-	console.log('app.address ', server.address());
-	console.log();
-});
+server.listen(config.port, function() { });
