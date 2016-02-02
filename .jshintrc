@@ -2,7 +2,7 @@
     "maxdepth": 4,
     "maxstatements": 200,
     "maxcomplexity": 12,
-    "maxlen": 80,
+    "maxlen": 180,
     "maxparams": 5,
 
     "curly": true,
@@ -16,12 +16,11 @@
     "unused": "vars",
     "trailing": true,
 
-    "quotmark": true,
+    "quotmark": false,
     "expr": true,
     "asi": true,
 
     "browser": false,
-    "esnext": true,
     "esversion": 6,
     "devel": false,
     "node": false,
