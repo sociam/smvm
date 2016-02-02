@@ -150,13 +150,14 @@ app.get('/api/:collection/:id', function(req,res) {
 	});
 });
 
+// post like this:
 // $.ajax({url:'/api/foo/newid2938',contentType:'application/json',method:'POST',data:JSON.stringify({a:123,b:'foo'})}).then((x) => console.log(x))
 app.post('/api/:collection/:id', (req,res) => {
 
 	var cname = req.params.collection,
 		id = req.params.id;
-
-	console.info('POST /api/',cname,id, ' -> ', req.body, typeof req.body, 'rawbody ', req.rawbody);
+		
+	// console.info('POST /api/',cname,id, ' -> ', req.body, typeof req.body, 'rawbody ', req.rawbody);
 
 	findCollection(cname).then((chost) => {
 		if (!chost) {
@@ -164,6 +165,7 @@ app.post('/api/:collection/:id', (req,res) => {
 			return res.status(400).send('Could not find collection');
 		}
 		if (chost && chost.id === config.id) {
+			// local commit!
 			console.info('local hit on collection > ', cname);
 			return db.collection(cname).save(req.body).then((resp) => {
 				console.info('success inserting ');
@@ -173,6 +175,7 @@ app.post('/api/:collection/:id', (req,res) => {
 				res.status(400).send(err.toString());
 			});
 		}
+		// remote commit, so ask appropriate peer
 		console.log('asking chost ', chost.id, ' - ', req.url);
 		postPeer(chost, req.originalUrl, req.body).then(function(remote_response) {
 			console.info('peer response', remote_response);
