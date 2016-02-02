@@ -1,4 +1,4 @@
-/* global console, require */
+/* global console, require, process */
 
 var express = require('express'),
 	app = express(),
@@ -6,8 +6,6 @@ var express = require('express'),
 	Promise = require('bluebird'),
 	mongo = require('mongodb-bluebird'),
 	bodyParser = require('body-parser'),
-	multer = require('multer'), // v1.0.5
-	upload = multer(),
 	config_file = process.argv.length > 2 ? process.argv[2] : './config',
 	config = require(config_file),
 	http = require('http'),
@@ -18,6 +16,7 @@ var express = require('express'),
 
 console.info('initialising with config ', config_file);
 // set up middleware
+
 app.use(bodyParser.json()); // for parsing application/json
 
 // set up static
@@ -51,20 +50,36 @@ connect.then(() => {
 	});
 });
 
-var askPeer = (peer, path) => {
+var askPeer = (peer, path, method) => {
 	var pa = peer.addrs[0],
 		peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
 
 	console.log('connecting peer_url ', peer_url);
 	return new Promise((acc,rej) => {
-		request({url:peer_url, timeout:1000})
+		request({uri:peer_url, timeout:1000})
 			.then(acc)
 			.catch((err) => {
 				console.error('could not connect to peer ', peer_url);
 				acc();
 			});
-		});
+	});
 };
+
+var postPeer = (peer, path, payload) => {
+	var pa = peer.addrs[0],
+		peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
+
+	console.log('POSTPEER >> connecting peer_url ', peer_url, path, ' payload :: ', payload);
+	return new Promise((acc,rej) => {
+		request({method:'POST', uri:peer_url, timeout:1000, body: payload, json:true, headers: { 'content-type': 'application/json' }})
+			.then(acc)
+			.catch((err) => {
+				console.error('could not connect to peer ', peer_url);
+				acc();
+			});
+	});
+};
+
 
 var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x) => x.s.name);	}),
 	getPeerCollections = (p) => askPeer(p, '/api/collections?local=true').then((x) => (x && JSON.parse(x) || [])),
@@ -79,6 +94,7 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 		})
 	};
 
+// api endpoints
 app.get('/api/collections', function(req,res) {
 	var localOnly = url.parse(req.url, true).query.local;
 	if (localOnly) {
@@ -94,6 +110,7 @@ app.get('/api/collections', function(req,res) {
 	}); // getLocalCollections
 }); // app.get
 
+// (name) -> returns (first) host that contains the collection
 app.get('/api/findCollection', function(req,res) {
 	var cname = url.parse(req.url, true).query.name;
 	findCollection(cname).then((p) => {
@@ -105,22 +122,71 @@ app.get('/api/findCollection', function(req,res) {
 	});
 });
 
-// respond with "hello world" when a GET request is made to the homepage
-// app.get('/', function(req, res) { res.send('hello world'); });
+// gets a document with specified id from the given collection
 app.get('/api/:collection/:id', function(req,res) {
-	console.log(' collection:', req.params.collection.trim(), ' id:', req.params.id);
-	var c = db.collection(req.params.collection);
-    return c.find().then(function(docs) {
-        res.status(200).send(""+JSON.stringify(docs));
-    }).catch(function(err) {
-        console.error("something went wrong");
-    });
+	// console.log(' collection:', req.params.collection.trim(), ' id:', req.params.id);
+	var cname = req.params.collection,
+		id = req.params.id;
+
+	findCollection(cname).then((chost) => {
+		if (!chost) {
+			console.error("Could not find collection ", cname, " returning 404");
+			return res.status(400).send('Could not find collection');
+		}
+		if (chost && chost.id === config.id) {
+			console.info('local hit! ');
+			return db.collection(cname).find({_id:id}).then((docs) => {
+				res.status(200).send(""+JSON.stringify(docs));
+			}).catch((err) => {
+				console.error("something went wrong fetching ", cname, " > ", id);
+				res.status(400).send(err.toString());
+			});
+		}
+		console.log('asking chost ', chost.id, ' - ', req.url);
+		askPeer(chost, req.originalUrl).then(function(remote_response) {
+			console.info('peer response', remote_response);
+			res.status(200).send(""+remote_response);
+		});
+	});
 });
 
-app.post('/api/:collection/:id', function(req,res) {
-	console.log('req.body ', req.body);
-	res.status(200).send('hi');
+// $.ajax({url:'/api/foo/newid2938',contentType:'application/json',method:'POST',data:JSON.stringify({a:123,b:'foo'})}).then((x) => console.log(x))
+app.post('/api/:collection/:id', (req,res) => {
+
+	var cname = req.params.collection,
+		id = req.params.id;
+
+	console.info('POST /api/',cname,id, ' -> ', req.body, typeof req.body, 'rawbody ', req.rawbody);
+
+	findCollection(cname).then((chost) => {
+		if (!chost) {
+			console.error("Could not find collection ", cname, " returning 404");
+			return res.status(400).send('Could not find collection');
+		}
+		if (chost && chost.id === config.id) {
+			console.info('local hit on collection > ', cname);
+			return db.collection(cname).save(req.body).then((resp) => {
+				console.info('success inserting ');
+				res.status(200).send('ok');
+			}).catch((err) => {
+				console.error("something went wrong fetching ", cname, " > ", id);
+				res.status(400).send(err.toString());
+			});
+		}
+		console.log('asking chost ', chost.id, ' - ', req.url);
+		postPeer(chost, req.originalUrl, req.body).then(function(remote_response) {
+			console.info('peer response', remote_response);
+			res.status(200).send(""+remote_response);
+		});
+	});
+
 });
+
+
+// app.post('/api/:collection/:id', function(req,res) {
+// 	console.log('req.body ', req.body);
+// 	res.status(200).send('hi');
+// });
 
 var getMyInterfaces = () => {
 	var localhosts = ["127.0.0.1", "::", "::1", "fe80::1"];
