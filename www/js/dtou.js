@@ -6,9 +6,9 @@
 // Core Predicates for Data Terms of Use, divided into categories
 var DToUConstraints = {
 
-	// temporal constraints describe when a particular item 
+	// temporal constraints describe when a particular item
 	// should be experienced.  we support absolute time intervals,
-	// or recurring time intervals (e.g. every Thursday or "every day 
+	// or recurring time intervals (e.g. every Thursday or "every day
 	// between 8am and 10am").
 	temporal: {
 		interval:function(params) {
@@ -20,15 +20,15 @@ var DToUConstraints = {
 		},
 		dayofWeek:function(params) {
 			// day is an integer : 0..6 (todo change to strings)
-			return function() { 
+			return function() {
 				var nowm = new Date();
 				return nowm.getDay() == params.day;
 			};
 		},
 		betweenHourMins:function(params) {
 			// time start / end is like "07:00", formatted hh:mm
-			return function() { 
-				var nowm = moment(), 
+			return function() {
+				var nowm = moment(),
 					sm = moment(params.start,"hh:mm"),
 					em = moment(params.end,"hh:mm");
 				return em.isAfter(sm) && nowm.isBetween(sm,em);
@@ -36,7 +36,7 @@ var DToUConstraints = {
 		},
 		until:function(params) {
 			var dm = moment(d);
-			return function() { 
+			return function() {
 				var nowm = moment();
 				return nowm.isBefore(hamish.date);
 			};
@@ -48,11 +48,11 @@ var DToUConstraints = {
 			return function(context) { return context.reader.id === personid; };
 		},
 		minAge:function(yrs) {
-			return function(context) { return context.reader.age >= yrs; }; 
+			return function(context) { return context.reader.age >= yrs; };
 		}
 	},
 	location: {
-		nearLatLng:function(lat,lng) { 
+		nearLatLng:function(lat,lng) {
 			/* todo */
 			return function(context) {};
 		}
@@ -79,22 +79,28 @@ var example = {
 	src:'http://hip.cat/emax/microblogs/blahblah1', // optional
 	src_signature:'18277823872k2323b', // optional
 
-	constraints: [
+	useConstraints: [
 		// put a constraint on it for showing only during feb
 		{ family:'temporal', type:'interval',from:'2016-02-01', to: '2016-02-28' },
 		{ family:'recipient', type:'person', person:'http://hip.cat/emax'	},
-		{ family:'location', type: 'nearLatLng', lat: 51.7721340, lng: -1.2105430 }
-	], 
+		{ family:'location', type: 'nearLatLng', lat: 51.7721340, lng: -1.2105430 },
+		{ family:'nUses', type: 'max', val:5  }
+	],
+
+	useTracking: [
+		{ useType:'view', type:'receipt', target:'http://hip.cat/emax#id' },
+		{ useType:'resharing', type:'receipt', target:'http://hip.cat/emax#id' }
+	],
 
 	storage: {
-		retention: 'indefinite', // until 
+		retention: 'indefinite', // until
 		container: {
 			access:	[{value: 'open', strength:'optional'}]
 			owner:{
 				combination:'or',
 				values:[
 					{ type:'person', value:'http://hip.cat/emax' }
-					{ type:'org', value:'http://sociam.org/' }						
+					{ type:'org', value:'http://sociam.org/' }
 				]
 			},
 			location: { type:'containedin', value:'geopoliticalboundaries.com/EU'},
