@@ -1,0 +1,27 @@
+
+angular.module('dtou', [])
+    .controller('microblog', function($scope) {
+
+        window.postDoc = (collection, id, doc, dtou) => {
+            return $.ajax({url:`/get/${collection}/${id}',
+                contentType:'application/json',
+                method:'POST',
+                data:JSON.stringify(doc),
+                headers: dtou !== undefined ? {
+                    dtou:JSON.stingify(dtou)
+                } : undefined).then((x) => {console.log(x); return x;});
+        };
+
+        window.getDoc = (collection, id, dtou_asserts) => {
+            return $.ajax({url:`/get-dtou/${collection}/${id}',
+                contentType:'application/json',
+                method:'POST',
+                data:JSON.stringify(doc),
+                headers: dtou !== undefined ? {
+                    dtou:JSON.stingify(dtou)
+                } : undefined).then((x) => {console.log(x); return x;});
+
+        }
+
+
+    });

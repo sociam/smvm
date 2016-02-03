@@ -155,8 +155,10 @@ app.get('/api/:collection/:id', function(req,res) {
 app.post('/api/:collection/:id', (req,res) => {
 
 	var cname = req.params.collection,
-		id = req.params.id;
-		
+		id = req.params.id,
+		dtou = req.get('dtou');
+
+	console.info('got data terms of use header', dtou);
 	// console.info('POST /api/',cname,id, ' -> ', req.body, typeof req.body, 'rawbody ', req.rawbody);
 
 	findCollection(cname).then((chost) => {
@@ -167,7 +169,7 @@ app.post('/api/:collection/:id', (req,res) => {
 		if (chost && chost.id === config.id) {
 			// local commit!
 			console.info('local hit on collection > ', cname);
-			return db.collection(cname).save(req.body).then((resp) => {
+			return db.collection(cname).save(_.extend({_id:id}, req.body)).then((resp) => {
 				console.info('success inserting ');
 				res.status(200).send('ok');
 			}).catch((err) => {
