@@ -134,7 +134,7 @@ app.get('/api/:collection/:id', function(req,res) {
 			return res.status(400).send('Could not find collection');
 		}
 		if (chost && chost.id === config.id) {
-			console.info('local hit! ');
+			// console.info('local hit! ');
 			return db.collection(cname).find({_id:id}).then((docs) => {
 				res.status(200).send(""+JSON.stringify(docs));
 			}).catch((err) => {
@@ -156,7 +156,7 @@ app.post('/api/:collection/:id', (req,res) => {
 
 	var cname = req.params.collection,
 		id = req.params.id;
-		
+
 	// console.info('POST /api/',cname,id, ' -> ', req.body, typeof req.body, 'rawbody ', req.rawbody);
 
 	findCollection(cname).then((chost) => {

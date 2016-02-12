@@ -22,7 +22,7 @@ var DToUConstraints = {
 			// day is an integer : 0..6 (todo change to strings)
 			return function() {
 				var nowm = new Date();
-				return nowm.getDay() == params.day;
+				return nowm.getDay() === params.day;
 			};
 		},
 		betweenHourMins:function(params) {
@@ -87,19 +87,22 @@ var example = {
 		{ family:'nUses', type: 'max', val:5  }
 	],
 
+	// stripped of personally identfying info (pii)
+	// what does the user think about?
 	useTracking: [
-		{ useType:'view', type:'receipt', target:'http://hip.cat/emax#id' },
-		{ useType:'resharing', type:'receipt', target:'http://hip.cat/emax#id' }
+		{ type:'log', useType:'view' },
+		{ type:'pingback-notification', useType:'resharing', notifytarget:'http://hip.cat/emax#id' },
+		{ type:'action-notification', useType:'favourite', notifytarget:'http://hip.cat/emax#id' }
 	],
 
 	storage: {
 		retention: 'indefinite', // until
 		container: {
-			access:	[{value: 'open', strength:'optional'}]
+			access:	[{value: 'open', strength:'optional'}],
 			owner:{
 				combination:'or',
 				values:[
-					{ type:'person', value:'http://hip.cat/emax' }
+					{ type:'person', value:'http://hip.cat/emax' },
 					{ type:'org', value:'http://sociam.org/' }
 				]
 			},
