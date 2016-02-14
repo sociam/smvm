@@ -1,3 +1,4 @@
+/* jshint strict:false */
 /* global console, require, process */
 
 var express = require('express'),
@@ -11,14 +12,16 @@ var express = require('express'),
 	http = require('http'),
 	url = require('url'),
 	os = require('os'),
+	md5 = require('MD5'),
 	request = require('request-promise'),
+	cookieParser = require('cookie-parser'),
 	db, tracker, peers;
 
 console.info('initialising with config ', config_file);
 // set up middleware
 
 app.use(bodyParser.json()); // for parsing application/json
-
+app.use(cookieParser());
 // set up static
 app.use('/', express.static('www'));
 
@@ -28,8 +31,7 @@ var connect = mongo.connect(config.tracker).then((tr) => {
 	console.info('connected to tracker ', config.tracker);
 	tracker = tr;
 	return mongo.connect(config.db);
-}).then((db_) => { db = db_; })
-.catch((err) => { console.error("could not connect to tracker"); });
+}).then((db_) => { db = db_; }).catch((err) => { console.error("could not connect to tracker", err); });
 
 connect.then(() => {
 	// insert ourselves in the tracker
@@ -50,16 +52,15 @@ connect.then(() => {
 	});
 });
 
-var askPeer = (peer, path, method) => {
+var askPeer = (peer, path) => {
 	var pa = peer.addrs[0],
 		peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
-
 	console.log('connecting peer_url ', peer_url);
-	return new Promise((acc,rej) => {
-		request({uri:peer_url, timeout:1000})
+	return new Promise((acc) => {
+		request({uri:peer_url, method:'GET', timeout:1000})
 			.then(acc)
 			.catch((err) => {
-				console.error('could not connect to peer ', peer_url);
+				console.error('could not connect to peer ', peer_url, err);
 				acc();
 			});
 	});
@@ -70,16 +71,15 @@ var postPeer = (peer, path, payload) => {
 		peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
 
 	console.log('POSTPEER >> connecting peer_url ', peer_url, path, ' payload :: ', payload);
-	return new Promise((acc,rej) => {
+	return new Promise((acc) => {
 		request({method:'POST', uri:peer_url, timeout:1000, body: payload, json:true, headers: { 'content-type': 'application/json' }})
 			.then(acc)
 			.catch((err) => {
 				console.error('could not connect to peer ', peer_url);
-				acc();
+				acc(); // we just failfast
 			});
 	});
 };
-
 
 var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x) => x.s.name);	}),
 	getPeerCollections = (p) => askPeer(p, '/api/collections?local=true').then((x) => (x && JSON.parse(x) || [])),
@@ -91,7 +91,7 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 			).then((ps) => {
 				if (ps.length > 0) { return ps[0]; }
 			});
-		})
+		});
 	};
 
 // api endpoints
@@ -114,10 +114,8 @@ app.get('/api/collections', function(req,res) {
 app.get('/api/findCollection', function(req,res) {
 	var cname = url.parse(req.url, true).query.name;
 	findCollection(cname).then((p) => {
-		console.info('peers hit for ', cname, p)
-		if (p !== undefined) {
-			return res.status(200).send(p.id);
-		}
+		console.info('peers hit for ', cname, p);
+		if (p !== undefined) {	return res.status(200).send(p.id);	}
 		return res.status(404).send('');
 	});
 });
@@ -148,6 +146,57 @@ app.get('/api/:collection/:id', function(req,res) {
 			res.status(200).send(""+remote_response);
 		});
 	});
+});
+
+var conn_by_token = {};
+
+var makeToken = () => { 
+	return new Promise((res,rej) => { 
+		require('crypto').randomBytes(48, (ex, buf) => {  res(buf.toString('hex')); });
+	});
+};
+
+app.post('/api/auth', (req,res) => {
+	// automatically auth
+	var username = req.body.username.trim(),
+		password = req.body.password;
+
+	console.info(req.body, 'username ', username, 'passwd ', password);	
+
+	db.collection('users').findById(username).then(function(userdoc) { 
+		console.log('userdoc ', userdoc);
+		if (userdoc.passhash == md5(password)) { 
+			makeToken().then((token) => { 
+				console.info('password matches for user ', username, ' setting token ', token);			
+				res.cookie('authtoken', token);
+				conn_by_token[token] = { user: username, db_connections: {} };
+				return res.status(200).send();
+			});
+		} else {
+			res.status(403).send();
+		}
+	});
+});
+/* creates a new user document - overwriting previous ones. this
+   effectively negates all security */
+app.post('/api/newuser', (req,res) => {
+	// todo make this actually work.
+	var username = req.body.username.trim(),
+		password = req.body.password,
+		passhash = md5(password);
+
+	db.collection('users').save({_id:username, passhash:passhash}).then(function() { 
+		res.status(200).send();
+	});
+});
+// auth check
+app.get('/api/check', (req,res) => {
+	var token = req.cookies.authtoken;
+	console.info('auth cookie is ', req.cookies, token);
+	if (conn_by_token[token] !== undefined) {
+		return res.status(200).send();
+	}
+	return res.status(403).send();
 });
 
 // post like this:
