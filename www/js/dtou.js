@@ -92,6 +92,8 @@ var example = {
 		{ useType:'resharing', type:'receipt', target:'http://hip.cat/emax#id' }
 	],
 
+	license: [],
+
 	storage: {
 		retention: 'indefinite', // until
 		container: {
