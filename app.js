@@ -33,24 +33,21 @@ var connect = mongo.connect(config.tracker).then((tr) => {
 	return mongo.connect(config.db);
 }).then((db_) => { db = db_; }).catch((err) => { console.error("could not connect to tracker", err); });
 
-connect.then(() => {
-	// insert ourselves in the tracker
-	tracker.collection('nodes').find({_id:config.owner.id}).then(function(d) {
-		// record ourselves in there:
-		// creates { name: <nodename>, id: 'nodeid', addrs: [ { prot: 'http', host:<addr>, port:3000 } ] }
-		var us = _(config).pick(['name','id']).extend({addrs : getMyInterfaces().map((x) => ({ prot:config.prot, host: x, port: config.port }))}).value();
-		peers = (d && d[0] && d[0].nodes || []).filter((x) => (x.id !== config.id));
-		var new_us = {_id:config.owner.id,nodes:peers.concat(us)};
-		return tracker.collection('nodes').save(new_us);
-	}).then(() => {
-		// let's make contact with the peers
-		console.log('done inserting ');
-
-		// test get local collections
-		getLocalCollections().then((x) => console.log('local collections ', x));
-
+var refresh_peers = () => {
+	// updates our view of peers from tracker and updates tracker with us
+	connect.then(() => {
+		// insert ourselves in the tracker
+		tracker.collection('nodes').find({_id:config.owner.id}).then(function(d) {
+			// record ourselves in there:
+			// creates { name: <nodename>, id: 'nodeid', addrs: [ { prot: 'http', host:<addr>, port:3000 } ] }
+			console.info('refreshing peers - got peers ', JSON.stringify(d));
+			var us = _(config).pick(['name','id']).extend({addrs : getMyInterfaces().map((x) => ({ prot:config.prot, host: x, port: config.port }))}).value();
+			peers = (d && d[0] && d[0].nodes || []).filter((x) => (x.id !== config.id));
+			var new_us = {_id:config.owner.id,nodes:peers.concat(us)};
+			return tracker.collection('nodes').save(new_us);
+		});
 	});
-});
+};
 
 var askPeer = (peer, path) => {
 	var pa = peer.addrs[0],
@@ -250,9 +247,11 @@ var getMyInterfaces = () => {
 		.uniq().value();
 };
 
-console.log('myinterfaces ', getMyInterfaces());
 
 var server = http.createServer(app);
+
+refresh_peers();
+setInterval(refresh_peers, 10000);
 
 // http.createServer(app).listen(3000);
 server.listen(config.port, function() { });
