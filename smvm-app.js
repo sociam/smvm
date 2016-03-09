@@ -35,6 +35,7 @@ host_key = scrypto.loadKey(config.privkey);
 
 snet.connect(host_key).then((db) => {
 	// snet kicks things off!
+	snet.register(app, db, host_key);
 	sauth.register(app, db, host_key); // register auth
 	scomponents.register(app, db, host_key); // 
 });
