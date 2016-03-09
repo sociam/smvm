@@ -1,19 +1,19 @@
 /* jshint strict:false */
 /* global console, require */
 
-const crypto = require('crypto');
+var crypto = require('crypto'),ursa = require('ursa');
 
-var create_keypair = () => { 
-	var prime_length = 60,
-		diffHell = crypto.createDiffieHellman(prime_length);
-
-	diffHell.generateKeys('base64');
-	console.log("Public Key : " ,diffHell.getPublicKey('base64'));
-	console.log("Private Key : " ,diffHell.getPrivateKey('base64'));
-
-	console.log("Public Key : " ,diffHell.getPublicKey('hex'));
-	console.log("Private Key : " ,diffHell.getPrivateKey('hex'));
-	return diffHell;
+var exports = module.exports = {
+	create_keypair : () => ursa.generatePrivateKey(1024, 65537),
+	getPublicKey : (key) => key.toPublicPem().toString(),
+	loadKey:(priv_pem) => ursa.createPrivateKey(priv_pem),
+	encryptObj:(key, data) => key.privateEncrypt(JSON.stringify(data), 'utf8', 'base64'),
+	decryptObj:(key, base64) => JSON.parse(key.publicDecrypt(base64, 'base64', 'utf8'))
 };
 
-create_keypair();
+
+// kp = exports.create_keypair();
+// kp2 = ursa.createPrivateKey(kp.toPrivatePem());
+
+
+module.exports = exports;

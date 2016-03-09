@@ -13,6 +13,7 @@
     "multer": "^1.1.0",
     "request-promise": "^2.0.0",
     "url": "^0.11.0",
+    "ursa": "^0.9.3",
     "util-extend": "^1.0.3"
   }
 }

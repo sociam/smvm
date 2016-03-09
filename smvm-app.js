@@ -7,14 +7,17 @@ var express = require('express'),
 	Promise = require('bluebird'),
 	mongo = require('mongodb-bluebird'),
 	bodyParser = require('body-parser'),
-	config_file = process.argv.length > 2 ? process.argv[2] : './config',
-	config = require(config_file),
+	fs = require('fs'),	
+	config_file = process.argv.length > 2 ? process.argv[2] : './config.json',
+	config = JSON.parse(fs.readFileSync(config_file)),
 	http = require('http'),
 	url = require('url'),
 	os = require('os'),
 	md5 = require('MD5'),
 	request = require('request-promise'),
 	cookieParser = require('cookie-parser'),
+	scrypto = require('./smvm-crypto'),
+	host_key,
 	db, tracker, peers;
 
 console.info('initialising with config ', config_file);
@@ -27,6 +30,18 @@ app.use('/', express.static('www'));
 
 // connect to the db -- which is at config.db
 console.log('PIES instance:', config.id, ' port:', config.port, ' database:', config.db);
+
+if (config.privkey === undefined) { 
+	// const out_file = [config_file,'-key.json'].join('');
+	config.privkey = scrypto.create_keypair().toPrivatePem().toString();
+	fs.writeFileSync(config_file, JSON.stringify(config, null, 4));
+	console.info('No private key, creating one for you and it writing to ', config_file, JSON.stringify(config, null, 4));	
+}
+
+// -----------loading host key --------------
+host_key = scrypto.loadKey(config.privkey);
+// -----
+
 var connect = mongo.connect(config.tracker).then((tr) => {
 	console.info('connected to tracker ', config.tracker);
 	tracker = tr;
@@ -40,10 +55,14 @@ var refresh_peers = () => {
 		tracker.collection('nodes').find({_id:config.owner.id}).then(function(d) {
 			// record ourselves in there:
 			// creates { name: <nodename>, id: 'nodeid', addrs: [ { prot: 'http', host:<addr>, port:3000 } ] }
-			console.info('refreshing peers - got peers ', JSON.stringify(d));
-			var us = _(config).pick(['name','id']).extend({addrs : getMyInterfaces().map((x) => ({ prot:config.prot, host: x, port: config.port }))}).value();
+			console.info('refreshing peers - got peers ', JSON.stringify(d, null, 2));
+			var me = _({
+				pubkey:scrypto.getPublicKey(host_key),
+				addrs : getMyInterfaces().map((x) => ({ prot:config.prot, host: x, port: config.port }))
+			}).extend(_.pick(config, ['name','id'])).value();
+			console.log('registering >> ', JSON.stringify(me, null, 2));
 			peers = (d && d[0] && d[0].nodes || []).filter((x) => (x.id !== config.id));
-			var new_us = {_id:config.owner.id,nodes:peers.concat(us)};
+			var new_us = {_id:config.owner.id,nodes:peers.concat(me)};
 			return tracker.collection('nodes').save(new_us);
 		});
 	});

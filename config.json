@@ -1,0 +1,20 @@
+{
+    "db": "mongodb://localhost:27017/dtou",
+    "tracker": "mongodb://robostar.csail.mit.edu:12345/pies",
+    "port": 3000,
+    "prot": "http",
+    "name": "happy storage node",
+    "id": "node-main-max",
+    "owner": {
+        "id": "http://hip.cat/emax",
+        "name": "electronic Max",
+        "pubkey": "2389238392921938928328"
+    },
+    "location": {
+        "city": "http://dbpedia.org/page/Oxford",
+        "lat": 51.748582,
+        "lon": -1.239827012
+    },
+    "security": "none",
+    "privkey": "-----BEGIN RSA PRIVATE KEY-----\nMIICXQIBAAKBgQCzmA+iM8UN8Cj16486EMYIkU6dgD8ZbjQgS64zsONuRpbr5n1i\n0tO1TARpBOaHc6LXyHpvk38npYFV1QZjksd1jd02lLdNaFFo480UufbKAzvYwsHP\nSyUXmwFR2y4KraqXRCmWV9HEjyOVyU3ma2vj0RsaTf+V9AOIW3epeBGNXwIDAQAB\nAoGAGwL27v18WOFTN9GrJB+buXQpb9T3KJsDqgvX8pxbSJ3DW026dB+jifQaAbWj\n+qFwz6WujJORn2PsNP2qTVWpPAt1MzbI+JlJI2M9F04ESVJuMjB+KbfZCFBSn36P\nt+tB03t0rfC/YbutdaDqak9HmGCptYulcMNJPheqgHjsqiECQQDizigX1j7gq5b9\n2KIC7Fghzsau5epWsN5RBAEo+eCEWwwpZgDTNgnut1DMtJNnnNvHynzxBGYA9NdI\ngzocODBxAkEAyrYqQGm1T7z4Clq1lqpDlLgV+zqbRharrwu77VxvEGkobpHJXyzY\nO4Th5WfD16+QHqk/6K6CVnnJsoHzExmCzwJBAJ6zprZXQhQvvS3PAj6NZnXxnHER\njFIw3L9P0Af+IS48D1yAdZ9VNsoFF9LFoEdmKRu6AocbjsyohmPE/0pzvuECQQC9\nsVo4jLMuuxciGWB0bUBwmxN21ZEYNX7Tf5eMt0L3iHBdh+95MO3oRKFfm4qY+6FS\nD+/OPf+aDL3CXfipluXhAkBlj+TR85xhgAwMbHhIut0RgJAbSwYGmLxV4OqMeaP1\ngU0Upxjz2ZZZK4573ZGm5fRQYNKJ3/ai/1rvlBoWrgJu\n-----END RSA PRIVATE KEY-----\n"
+}
