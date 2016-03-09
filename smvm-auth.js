@@ -1,55 +1,62 @@
 /* jshint strict:false */
-/* global console, require, process */
+/* global console, require, module */
 
+const conn_by_token = {}, 
+	crypto = require('crypto'),
+	md5 = require('MD5');	
 
-var conn_by_token = {},
-	crypto = require('crypto');
+console.log('registering auth functions >>>>>>>>>> ');
 
 var makeToken = () => { 
-	return new Promise((res,rej) => { 
+	return new Promise((res) => { 
 		crypto.randomBytes(48, (ex, buf) => {  res(buf.toString('hex')); });
 	});
 };
 
-app.post('/api/auth', (req,res) => {
-	// automatically auth
-	var username = req.body.username.trim(),
-		password = req.body.password;
+module.exports = { 
+	register: (app, db) => {
+		app.post('/api/auth', (req,res) => {
+			// automatically auth
+			var username = req.body.username.trim(),
+				password = req.body.password;
 
-	console.info(req.body, 'username ', username, 'passwd ', password);	
+			console.info(req.body, 'username ', username, 'passwd ', password);	
 
-	db.collection('users').findById(username).then(function(userdoc) { 
-		console.log('userdoc ', userdoc);
-		if (userdoc.passhash == md5(password)) { 
-			makeToken().then((token) => { 
-				console.info('password matches for user ', username, ' setting token ', token);			
-				res.cookie('authtoken', token);
-				conn_by_token[token] = { user: username, db_connections: {} };
-				return res.status(200).send();
+			db.collection('users').findById(username).then(function(userdoc) { 
+				console.log('userdoc ', userdoc);
+				if (userdoc.passhash == md5(password)) { 
+					makeToken().then((token) => { 
+						console.info('password matches for user ', username, ' setting token ', token);			
+						res.cookie('authtoken', token);
+						conn_by_token[token] = { user: username, db_connections: {} };
+						return res.status(200).send();
+					});
+				} else {
+					res.status(403).send();
+				}
 			});
-		} else {
-			res.status(403).send();
-		}
-	});
-});
-/* creates a new user document - overwriting previous ones. this
-   effectively negates all security */
-app.post('/api/newuser', (req,res) => {
-	// todo make this actually work.
-	var username = req.body.username.trim(),
-		password = req.body.password,
-		passhash = md5(password);
+		});
+		/* creates a new user document - overwriting previous ones. this
+		   effectively negates all security */
+		app.post('/api/newuser', (req,res) => {
+			// todo make this actually work.
+			var username = req.body.username.trim(),
+				password = req.body.password,
+				passhash = md5(password);
 
-	db.collection('users').save({_id:username, passhash:passhash}).then(function() { 
-		res.status(200).send();
-	});
-});
-// auth check
-app.get('/api/check', (req,res) => {
-	var token = req.cookies.authtoken;
-	console.info('auth cookie is ', req.cookies, token);
-	if (conn_by_token[token] !== undefined) {
-		return res.status(200).send();
+			db.collection('users').save({_id:username, passhash:passhash}).then(function() { 
+				res.status(200).send();
+			});
+		});
+		// auth check
+		app.get('/api/check', (req,res) => {
+			var token = req.cookies.authtoken;
+			console.info('auth cookie is ', req.cookies, token);
+			if (conn_by_token[token] !== undefined) {
+				return res.status(200).send();
+			}
+			return res.status(403).send();
+		});
 	}
-	return res.status(403).send();
-});
+};
+

@@ -11,9 +11,4 @@ var exports = module.exports = {
 	decryptObj:(key, base64) => JSON.parse(key.publicDecrypt(base64, 'base64', 'utf8'))
 };
 
-
-// kp = exports.create_keypair();
-// kp2 = ursa.createPrivateKey(kp.toPrivatePem());
-
-
 module.exports = exports;
