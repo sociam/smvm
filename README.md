@@ -1,6 +1,13 @@
-# ppdl-dtou-microblog
-personal privacy data lab microblogging client and data terms of use engine
+# the decentralised social machines project
 
+The Decentralised Social Machines project is an effort
+to try to end-users and programmers to easily create
+social applications that, through transparency, decentralised
+trust, and partitioning, limits the propagation of sensitive 
+information while providing powerful social computational 
+primitives.
+
+## set up:
 
 # install bower dependencies
 bower install
