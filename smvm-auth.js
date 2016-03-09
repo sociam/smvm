@@ -5,8 +5,6 @@ const conn_by_token = {},
 	crypto = require('crypto'),
 	md5 = require('MD5');	
 
-console.log('registering auth functions >>>>>>>>>> ');
-
 var makeToken = () => { 
 	return new Promise((res) => { 
 		crypto.randomBytes(48, (ex, buf) => {  res(buf.toString('hex')); });

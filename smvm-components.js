@@ -2,9 +2,9 @@
 /* global console, require, process */
 
 
-console.log('registering components functions >>>>>>>>>> ');
 
 module.exports = { 
 	register:(app) => {
+		console.info('registering components functions >>>>>>>>>> ');
 	}
 };

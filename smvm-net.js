@@ -92,6 +92,7 @@ module.exports = {
 	},
 	register:(app, db, host_key) => {
 		// start registering api endpoints
+		console.info('registering net endpoints >>>> ');
 		app.get('/api/collections', (req,res) => {
 			var localOnly = url.parse(req.url, true).query.local;
 			if (localOnly) {
