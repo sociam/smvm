@@ -1,14 +1,19 @@
 /* jshint strict:false */
-/* global console, require, process */
+/* global console, require */
 
-var crypto = require('crypto');
+const crypto = require('crypto');
 
-var prime_length = 60;
-var diffHell = crypto.createDiffieHellman(prime_length);
+var create_keypair = () => { 
+	var prime_length = 60,
+		diffHell = crypto.createDiffieHellman(prime_length);
 
-diffHell.generateKeys('base64');
-console.log("Public Key : " ,diffHell.getPublicKey('base64'));
-console.log("Private Key : " ,diffHell.getPrivateKey('base64'));
+	diffHell.generateKeys('base64');
+	console.log("Public Key : " ,diffHell.getPublicKey('base64'));
+	console.log("Private Key : " ,diffHell.getPrivateKey('base64'));
 
-console.log("Public Key : " ,diffHell.getPublicKey('hex'));
-console.log("Private Key : " ,diffHell.getPrivateKey('hex'));
+	console.log("Public Key : " ,diffHell.getPublicKey('hex'));
+	console.log("Private Key : " ,diffHell.getPrivateKey('hex'));
+	return diffHell;
+};
+
+create_keypair();
