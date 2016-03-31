@@ -10,16 +10,43 @@ module.exports = {
 };
 
 var closedVote = (instance, whitelist_verifier, candidates) => {
-	var votes = instance.getStateVariable('votes');
-	return (voter, ballot) => {
-		return whitelist_verifier(voter).then((authorised) => {
-			if (!authorised) { throw Error("Not authorised to vote in this election"); }
-			if (candidates.indexOf(ballot.choice) >= 0) {
-				votes[voter.id] = ballot.choice;
-				return 'ok';
-			}
-			throw Error("Invalid vote ", ballot.choice);
-		});
-	};
+	return {
+		id: 'closedvote',
+		methods: {
+			cast: instance.createFunction((instance, ballot) => {
+				var votes = instance.get('votes'),
+					voter = instance.getAuthenticatedUser();
+				return whitelist_verifier(voter).then((authorised) => {
+					if (!authorised) { throw Error("Not authorised to vote in this election"); }
+					if (candidates.indexOf(ballot.choice) >= 0) {
+						votes[voter.id] = ballot.choice;
+						instance.set({votes:votes});
+						return 'ok';
+					}
+					throw Error("Invalid vote ", ballot.choice);
+				});
+			}),
+			results : instance.createFunction((instance) => {
+				var votes = instance.get('votes');
+				return _.values(votes).reduce((counts, b) => { 
+					counts[b] = counts[b] + 1 || 1;
+					return counts;
+				}, {});
+			})
+		} 
+	}; 
 };
 
+
+var whitelist = (instance, acl) => {
+	id:'whitelist',
+	method:instance.createFunction((person) => acl.map((x) => x.id).indexOf(person.id) >= 0 )
+};
+
+var program = () => {
+	var instance = SMVMs.makeSocialMachine(),
+		wl = SMVMs.makeNew(instance, 'whitelist', ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com']),
+		vote = SMVMs.makeNew(instance, 'closedVote', wl, 
+
+
+}
