@@ -44,9 +44,15 @@ var whitelist = (instance, acl) => {
 };
 
 var program = () => {
-	var instance = SMVMs.makeSocialMachine(),
+	var instance = SMVMs.newSocialMachine(),
 		wl = SMVMs.makeNew(instance, 'whitelist', ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com']),
-		vote = SMVMs.makeNew(instance, 'closedVote', wl, 
+		vote = SMVMs.makeNew(instance, 'closedVote', wl, ['http://makeamericangreatagain.com/#trump', 
+			'http://hilary.com/#clinton'],
+		ballotboxUI = SMVM.makeNew(instance,'ballotBoxUI',vote),
+		resultsUI = SMVM.makeNew(instance,'histogramUI', () => vote.results(instance));
+	return vote;
+};
+
 
 
 }
