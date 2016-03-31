@@ -42,7 +42,7 @@ module.exports = {
 				password = req.body.password,
 				passhash = md5(password);
 
-			db.collection('users').save({_id:username, passhash:passhash}).then(function() { 
+			db.collection('users').save({_id:username, passhash:passhash}).then(() => { 
 				res.status(200).send();
 			});
 		});

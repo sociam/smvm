@@ -88,6 +88,7 @@ module.exports = {
 			db = db_; 
 			refresh_peers(host_key);
 			setInterval(() => refresh_peers(host_key), 10000);			
+			return db;
 		}).catch((err) => { console.error("could not connect to tracker", err); });
 	},
 	register:(app, db, host_key) => {

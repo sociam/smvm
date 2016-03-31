@@ -37,6 +37,10 @@ snet.connect(host_key).then((db) => {
 	// snet kicks things off!
 	snet.register(app, db, host_key);
 	sauth.register(app, db, host_key); // register auth
+
+	var smvm = new scomponents.SMVMCore(db);
+
+	sexamples.populate(db); // populate examples :D
 	scomponents.register(app, db, host_key); // 
 });
 
