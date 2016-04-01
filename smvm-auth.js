@@ -12,6 +12,12 @@ var makeToken = () => {
 };
 
 module.exports = { 
+	getRequestUser: (req) => { 
+		var token = req.cookies && req.cookies.authtoken;
+		if (token && conn_by_token[token] !== undefined) {
+			return conn_by_token[token].user;
+		}
+	},
 	register: (app, db) => {
 		app.post('/api/auth', (req,res) => {
 			// automatically auth
