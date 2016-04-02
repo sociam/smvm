@@ -12,6 +12,7 @@ var makeToken = () => {
 };
 
 module.exports = { 
+	makeToken:makeToken
 	getRequestUser: (req) => { 
 		var token = req.cookies && req.cookies.authtoken;
 		if (token && conn_by_token[token] !== undefined) {

@@ -1,35 +1,34 @@
 /* jshint strict:false */
 /* global console, require, process */
 
-var closedvote = (instance, whitelist_verifier, candidates) => {
-	return {
-		id: 'closedvote',
-		methods: {
-			cast: instance.createFunction((instance, ballot) => {
-				var votes = instance.get('votes'),
-					voter = instance.getAuthenticatedUser();
-				return whitelist_verifier(voter).then((authorised) => {
-					if (!authorised) { throw Error("Not authorised to vote in this election"); }
-					if (candidates.indexOf(ballot.choice) >= 0) {
-						votes[voter.id] = ballot.choice;
-						instance.set({votes:votes});
-						return 'ok';
-					}
-					throw Error("Invalid vote ", ballot.choice);
-				});
-			}),
-			results : instance.createFunction((instance) => {
-				var votes = instance.get('votes');
-				return _.values(votes).reduce((counts, b) => { 
-					counts[b] = counts[b] + 1 || 1;
-					return counts;
-				}, {});
-			})
-		} 
-	}; 
-}, whitelist = (instance, acl) => {
-	id:'whitelist',
-	method:instance.createFunction((person) => acl.map((x) => x.id).indexOf(person.id) >= 0 )
+var castvote = (instance, config) => {
+	return (instance, args) => {
+		var whitelist_verifier = config.whitelist_verifier, 
+			candidates = config.candidates,
+			ballot = args.ballot,
+			votes = instance.get('votes'),
+			voter = instance.getAuthenticatedUser();
+
+		return whitelist_verifier(voter).then((authorised) => {
+			if (!authorised) { throw Error("Not authorised to vote in this election"); }
+			if (candidates.indexOf(ballot.choice) >= 0) {
+				votes[voter.id] = ballot.choice;
+				instance.set({votes:votes});
+				return 'ok';
+			}
+			throw Error("Invalid vote ", ballot.choice);
+		});
+	};
+}, tallyvote = (instance, config) { 
+	return (instance) => {
+		var votes = instance.get('votes');
+		return _.values(votes).reduce((counts, b) => { 
+			counts[b] = counts[b] + 1 || 1;
+			return counts;
+		}, {});
+	};
+}, whitelist = (instance, config) => {
+	return (person) => config.acl.map((x) => x.id).indexOf(person.id) >= 0;
 };
 
 
@@ -43,13 +42,12 @@ module.exports = {
 	},
 	makeElection:(smvm) => {
 		var instance = smvm.newSocialMachine(),
-			wl = smvm.makeNew(instance, 'whitelist', ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com']),
-			vote = smvm.makeNew(instance, 'closedVote', wl, 
-				[
+			wl = instance.newOp(instance, 'whitelist', ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com']),
+			vote = instance.newOp(instance, 'closedVote', { whitelist:wl, candidates: [
 					{id:'http://makeamericangreatagain.com/#trump', name:'donald trump'}, 
 					{id:'http://hillary.com/#clinton', name:'hillary clinton'}
 				]
-			);
+			});
 		return vote;
 	}
 };

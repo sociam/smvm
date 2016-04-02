@@ -32,6 +32,7 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 			.filter((x) => localhosts.indexOf(x) < 0 && x.indexOf(':') < 0) // get rid of localhosts, ipv6 shizzle
 			.uniq().value();
 	},
+	makeFullURL = (path) => getMyInterfaces().map((if) => ['http', if, path].join('')),
 	refresh_peers = (host_key) => {
 		// updates our view of peers from tracker and updates tracker with us
 		const scrypto = require('./smvm-crypto');
