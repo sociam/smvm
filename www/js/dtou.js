@@ -95,6 +95,8 @@ var example = {
 		{ type:'action-notification', useType:'favourite', notifytarget:'http://hip.cat/emax#id' }
 	],
 
+	license: [],
+
 	storage: {
 		retention: 'indefinite', // until
 		container: {
