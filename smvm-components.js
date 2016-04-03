@@ -2,6 +2,7 @@
 /* global console, require, module */
 
 const uuid = require('node-uuid'),
+	Promise = require('bluebird'),
 	COLLECTION = COLLECTION,
 	log = (x) => console.log(x),
 	request = require('request-promise'),
@@ -13,7 +14,7 @@ var SMOp = (sm, iid) => {
 };
 
 SMOp.prototype = {
-	getIDoc: () => this.sm.smvm.db.collection(COLLECTION).findById(this.iid),
+	getIDoc: () => this.sm.smvm.db.findById(this.iid),
 	getRequestUser: (req) => require('./smvm-net').getRequestUser(req),	
 	load:() => { 	
 		var this_ = this;
@@ -22,6 +23,23 @@ SMOp.prototype = {
 			return this_.bind();
 		});
 	},
+	getState:(key) => {
+		return this.getIDoc().then((idoc) => { 
+			if (idoc.state && idoc.state[key]) { 
+				return idoc.state[key];
+			}
+		});
+	},
+	setState:(vars) => {
+		return this.getIDoc().then((idoc) => { 
+			if (!idoc.state) { idoc.state = {}; }
+			_(idoc.state).extend(vars);
+			return this.sm.smvm.db.save(idoc);
+		});		
+	}
+	getURLs: () => {
+		return require('./smvm-net').makeFullURLs('/instances/'+this.iid);
+	},	
 	makeCallable:() => {
 		// weird POST-GET to deal with persisting values then getitng them.
 		var this_ = this, idoc;
@@ -37,14 +55,14 @@ SMOp.prototype = {
 	},
 	bind:() => {
 		var this_ = this,
-			iid = this.config.iid,
+			iid = this.iid,
 			urlpath = '/instances/'+iid,
 			net = require('./smvm-net'),
 			idb = this.sm.smvm.db.collection(COLLECTION);
 
 		return this_.getIDoc().then((idoc) => { 
 			// update locations first
-			idoc.urls = net.makeFullURL(urlpath);
+			idoc.urls = net.makeFullURLs(urlpath);
 			log('setting urls for op ', iid, idoc.urls);
 			return idoc.save();
 		}).then(() => { 
@@ -137,7 +155,6 @@ SocialMachine.prototype = {
 		}, {});
 	}
 };
-
 
 var SMVM = (app, db) => {
 	this.app = app;
