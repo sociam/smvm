@@ -40,7 +40,7 @@ snet.connect(host_key).then((db) => {
 	sauth.register(app, db, host_key); // register auth	
 	const smvm = new scomponents.SMVM(app, db),
 		election_server = sreg.makeElection(smvm).then((x) => {
-			console.log("Election Server made ", election_server);
+			console.log("Election Server made ", x);
 		});
 });
 

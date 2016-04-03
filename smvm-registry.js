@@ -55,7 +55,7 @@ module.exports = {
 					}).then((cvote) => { 
 						return sm.newOp('tallyvote').then((tvote) => {
 							return [wl, cvote, tvote].reduce((mapping, op) => {
-								console.log('op '.green, op);
+								console.log('op'.green, op.iid.cyan, op.getURLs());
 								mapping[op.protid] = op.getURLs();
 								return mapping;
 							}, {});
