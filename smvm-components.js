@@ -3,7 +3,6 @@
 
 const uuid = require('node-uuid'),
 	Promise = require('bluebird'),
-	md5 = require('MD5'),
 	worduuids = require('random-words'),
 	worduuid = () => worduuids({exactly:5,join:'-'}),
 	COLLECTION = 'instances',
@@ -23,11 +22,11 @@ SMOp.prototype = {
 	getRequestUser: (req) => require('./smvm-net').getRequestUser(req),	
 	load:function() { 	
 		var this_ = this;
-		log("SMOP load".red);
 		return this.getIDoc().then((idoc) => {
+			log("SMOP load".red, idoc);
 			this_.protid = idoc.protid;
-			this_.config = this_.sm.deserialise_op_config(idoc);
-			return this_.bind();
+			this_.config = this_.sm.deserialise_op_callable_config(idoc);
+			return this_.bind().then(() => this_);
 		});
 	},
 	getState:function(key) {
@@ -65,15 +64,16 @@ SMOp.prototype = {
 			iid = this.iid,
 			urlpath = '/instances/'+iid,
 			net = require('./smvm-net'),
-			idb = this.sm.smvm.db;
+			idb = this.sm.smvm.db,
+			app = this.sm.smvm.app;
 
 		return this_.getIDoc().then((idoc) => { 
 			// update locations first
 			idoc.urls = net.makeFullURLs(urlpath);
 			log('setting urls for op ', iid, idoc.urls);
-			return idoc.save();
+			return idb.save(idoc);
 		}).then(() => { 
-			this_.smvm.app.post(urlpath, (req,res) => { 
+			app.post(urlpath, (req,res) => { 
 				this_.getIDoc().then((idoc) => { 
 					// post of req, update our document
 					var user = this_.getRequestUser(req),
@@ -83,7 +83,7 @@ SMOp.prototype = {
 					idb.save(idoc).then(() => { res.status(200).send('Ok saved'); }).catch((e) => res.status(500).send('error '+ e.toString()));
 				}).catch((e) => res.status(500).send('error '+ e.toString()));
 			});
-			this.smvm.app.get(urlpath, (req,res) => {
+			app.get(urlpath, (req,res) => {
 				// now get arguments and apply
 				// invert params by identity
 				this_.getIDoc().then((i) => { 				
@@ -122,7 +122,7 @@ SocialMachine.prototype = {
 			idoc.ops.map((opspec) => {
 				smvm.ops[opspec.iid] = this_.ops[opspec.iid] = (smvm.ops[opspec.iid] || new SMOp(this_,opspec.iid));
 			});
-			return Promise.all(_.values(smvm.ops).map((x) => x.load()));
+			return Promise.all(_.values(smvm.ops).map((x) => x.load())).then(() => this_);
 		});
 	},
 	getDoc: function() { return this.db.findById(this.id); },
@@ -132,7 +132,7 @@ SocialMachine.prototype = {
 			this_ = this,
 			opdoc = { _id:opiid, type:'smop', protid: protid, config:this.serialise_op_config(config_args) };
 
-		log('creating op '.blue, protid.white, opiid.cyan);
+		log('creating op '.blue, protid, opiid.cyan);
 
 		return this.getDoc().then((smdoc) => { 
 			// update t
@@ -141,7 +141,7 @@ SocialMachine.prototype = {
 				return this.db.save(smdoc).then(() => {
 					var op = new SMOp(this_,opiid);
 					this_.ops[opiid] = op;
-					return op;
+					return op.load().then(() => this_);
 				});
 			});
 		});
@@ -182,11 +182,12 @@ SMVM.prototype = {
 			return sm.load().then(() => sm);
 		});
 	},
-	bindInstances:function() {
+	loadAll:function() {
 		// TODO debug
 		var machines = this.machines, idb = this.db, this_ = this;
 		return idb.find({type:'socialmachine'}).then((instances) => {
 			return Promise.all(instances.map((i) => { 
+				log("Loading social machine >>".yellow, i.id);
 				machines[i.id] = machines[i.id] || new SocialMachine(this_, i.id); // intentional use of this due to => 
 				return machines[i.id].load().then(() => machines[i.id]);
 			}));
