@@ -31,15 +31,13 @@ SMOp.prototype = {
 	},
 	getState:function(key) {
 		return this.getIDoc().then((idoc) => { 
-			if (idoc.state && idoc.state[key]) { 
-				return idoc.state[key];
-			}
+			if (idoc.state) { return idoc.state[key]; }
 		});
 	},
 	setState:function(vars) {
 		return this.getIDoc().then((idoc) => { 
 			if (!idoc.state) { idoc.state = {}; }
-			_(idoc.state).extend(vars);
+			_.extend(idoc.state, vars);
 			return this.sm.smvm.db.save(idoc);
 		});		
 	},
