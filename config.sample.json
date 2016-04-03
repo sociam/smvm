@@ -1,5 +1,5 @@
 {
-    "db": "mongodb://localhost:27017/dtou",
+    "db": "mongodb://localhost:27017/smvm",
     "tracker": "mongodb://robostar.csail.mit.edu:12345/pies",
     "port": 3000,
     "prot": "http",

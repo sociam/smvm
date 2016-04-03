@@ -3,14 +3,19 @@
 
 const uuid = require('node-uuid'),
 	Promise = require('bluebird'),
+	md5 = require('MD5'),
+	worduuids = require('random-words'),
+	worduuid = () => worduuids({exactly:5,join:'-'}),
 	COLLECTION = 'instances',
-	log = (x) => console.log(x),
+	log = (x,y,z) => console.log(x,y||'',z||''),
+	colors = require('colors'),
 	request = require('request-promise'),
 	_ = require('lodash');
 
 var SMOp = function(sm, iid) {
 	this.sm = sm;
 	this.iid = iid;
+	log('SMOP constructor'.green, iid.red);
 };
 
 SMOp.prototype = {
@@ -18,7 +23,7 @@ SMOp.prototype = {
 	getRequestUser: (req) => require('./smvm-net').getRequestUser(req),	
 	load:function() { 	
 		var this_ = this;
-		log("SMOP load");
+		log("SMOP load".red);
 		return this.getIDoc().then((idoc) => {
 			this_.protid = idoc.protid;
 			this_.config = this_.sm.deserialise_op_config(idoc);
@@ -123,14 +128,16 @@ SocialMachine.prototype = {
 	getDoc: function() { return this.db.findById(this.id); },
 	// creating a new instance
 	newOp:function(protid, config_args) {
-		const opiid = uuid.v1(),
+		const opiid = worduuid(),
 			this_ = this,
 			opdoc = { _id:opiid, type:'smop', protid: protid, config:this.serialise_op_config(config_args) };
+
+		log('creating op '.blue, protid.white, opiid.cyan);
 
 		return this.getDoc().then((smdoc) => { 
 			// update t
 			smdoc.ops.push(opiid);
-			return this_.db.save(opdoc).then(() => {
+			return this_.db.insert(opdoc).then(() => {
 				return this.db.save(smdoc).then(() => {
 					var op = new SMOp(this_,opiid);
 					this_.ops[opiid] = op;
