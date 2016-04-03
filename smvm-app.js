@@ -15,6 +15,7 @@ var express = require('express'),
 	snet = require('./smvm-net'),
 	scrypto = require('./smvm-crypto'),
 	sauth = require('./smvm-auth'),
+	sreg = require('./smvm-registry'),
 	scomponents = require('./smvm-components'),
 	host_key;
 
@@ -36,19 +37,15 @@ host_key = scrypto.loadKey(config.privkey);
 snet.connect(host_key).then((db) => {
 	// snet kicks things off!
 	snet.register(app, db, host_key);
-	sauth.register(app, db, host_key); // register auth
-
-	var smvm = new scomponents.SMVMCore(db);
-
-	sexamples.populate(db); // populate examples :D
-	scomponents.register(app, db, host_key); // 
+	sauth.register(app, db, host_key); // register auth	
+	var smvm = new scomponents.SVMM(app, db);
+	sreg.makeElection(smvm);
 });
 
 // register middleware
 app.use(bodyParser.json()); // for parsing application/json
 app.use(cookieParser());
 app.use('/', express.static('www'));
-
 
 var server = http.createServer(app);
 
