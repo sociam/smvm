@@ -19,7 +19,7 @@ var SMOp = function(sm, iid) {
 
 SMOp.prototype = {
 	getIDoc: function() { return this.sm.smvm.db.findById(this.iid); },
-	getRequestUser: (req) => require('./smvm-net').getRequestUser(req),	
+	getRequestUser: (req) => require('./smvm-auth').getRequestUser(req),	
 	load:function() { 	
 		var this_ = this;
 		return this.getIDoc().then((idoc) => {
@@ -72,12 +72,15 @@ SMOp.prototype = {
 			return idb.save(idoc);
 		}).then(() => { 
 			app.post(urlpath, (req,res) => { 
+				log('POST '.yellow, iid, ' ', req.params);
 				this_.getIDoc().then((idoc) => { 
 					// post of req, update our document
 					var user = this_.getRequestUser(req),
 						args_by_user = idoc.args_by_user || {};
 					if (!user) { return res.status(400).send('no user'); }
 					args_by_user[user] = _(req.params).clone();
+					idoc.args_by_user = args_by_user;
+					log('POST saving updated idoc '.blue, idoc.args_by_user, idoc);
 					idb.save(idoc).then(() => { res.status(200).send('Ok saved'); }).catch((e) => res.status(500).send('error '+ e.toString()));
 				}).catch((e) => res.status(500).send('error '+ e.toString()));
 			});
@@ -96,7 +99,7 @@ SMOp.prototype = {
 					if (!fn) { return res.status(500).send('protocol should have returned a function ' + protid); }
 					/// TODO --- next step is to apply the method to the arguments	
 					log('attempting to apply with arguments ', args);
-					var result = fn(args);
+					var result = fn(_.extend(args, {auth_user:this_.getRequestUser(req)}));
 					res.status(200).send(result);
 				}).catch((e) => res.status(500).send('error '+ e.toString()));
 			});
@@ -126,7 +129,7 @@ SocialMachine.prototype = {
 	getDoc: function() { return this.db.findById(this.id); },
 	// creating a new instance
 	newOp:function(protid, config_args) {
-		const opiid = protid + "--" + worduuid(),
+		const opiid = protid, //  + "--" + worduuid(),
 			this_ = this,
 			opdoc = { _id:opiid, type:'smop', protid: protid, config:this.serialise_op_config(config_args) };
 
@@ -135,7 +138,7 @@ SocialMachine.prototype = {
 		return this.getDoc().then((smdoc) => { 
 			// update t
 			smdoc.ops.push(opiid);
-			return this_.db.insert(opdoc).then(() => {
+			return this_.db.save(opdoc).then(() => {
 				log('inserted '.blue, opdoc);
 				return this.db.save(smdoc).then(() => {
 					log('saving '.blue, smdoc);

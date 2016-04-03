@@ -9,10 +9,15 @@ var Promise = require('bluebird'),
 			var whitelist_verifier = config.whitelist_verifier, 
 				candidates = config.candidates,
 				ballot = args.ballot,
-				voter = smop.getAuthenticatedUser();
-			return [smop.getState('votes'), whitelist_verifier(voter)].spread((votes, authorised) => {
+				voter = args.auth_user;
+
+			console.info("CASTVOTE config ", config);
+			console.info("CASTVOTE args ".green, candidates, voter, ballot);
+			return Promise.all([smop.getState('votes'), whitelist(voter)]).spread((votes, authorised) => {
+				console.log("getState [votes]", votes);
+				console.log("authorised ", authorised);
 				if (!authorised) { throw Error("Not authorised to vote in this election"); }
-				if (candidates.indexOf(ballot.choice) >= 0) {
+				if (candidates.map((x) => x.id).indexOf(ballot) >= 0) {
 					votes[voter.id] = ballot.choice;
 					return smop.setState({votes:votes}).then(() => 'ok');
 				}
@@ -29,8 +34,11 @@ var Promise = require('bluebird'),
 				}, {});
 			});
 		};
-	}, whitelist = (sm, config) => {
-		return (person) => config.acl.map((x) => x.id).indexOf(person.id) >= 0;
+	}, whitelist = (sm, config, req) => {
+		return (args) => { 
+			console.info("WHITELIST args ", args, config);
+			return config.acl.indexOf(args.auth_user) >= 0;
+		};
 	};
 
 
@@ -44,7 +52,7 @@ module.exports = {
 	},
 	makeElection:(smvm) => {
 		 return smvm.newSocialMachine().then((sm) => {
-			return sm.newOp('whitelist', ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com']).then((wl) => {
+			return sm.newOp('whitelist', { acl : ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com'] }).then((wl) => {
 				return sm.newOp('castvote', 
 					{ 
 						whitelist:wl, 
