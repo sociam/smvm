@@ -6,8 +6,8 @@ const uuid = require('node-uuid'),
 	worduuids = require('random-words'),
 	worduuid = () => worduuids({exactly:5,join:'-'}),
 	COLLECTION = 'instances',
-	log = (x,y,z) => console.log(x,y||'',z||''),
-	colors = require('colors'),
+	colors = require('colors'),	
+	log = function() { console.log.apply(console,arguments); },
 	request = require('request-promise'),
 	_ = require('lodash');
 
@@ -23,9 +23,9 @@ SMOp.prototype = {
 	load:function() { 	
 		var this_ = this;
 		return this.getIDoc().then((idoc) => {
-			log("SMOP load".red, idoc);
+			log("SMOP load".red, idoc.protid, idoc._id);
 			this_.protid = idoc.protid;
-			this_.config = this_.sm.deserialise_op_callable_config(idoc);
+			this_.config = this_.sm.deserialise_op_config(idoc);
 			return this_.bind().then(() => this_);
 		});
 	},
@@ -128,20 +128,22 @@ SocialMachine.prototype = {
 	getDoc: function() { return this.db.findById(this.id); },
 	// creating a new instance
 	newOp:function(protid, config_args) {
-		const opiid = worduuid(),
+		const opiid = protid + "--" + worduuid(),
 			this_ = this,
 			opdoc = { _id:opiid, type:'smop', protid: protid, config:this.serialise_op_config(config_args) };
 
-		log('creating op '.blue, protid, opiid.cyan);
+		log('creating op '.blue, protid, opiid.cyan, opdoc);
 
 		return this.getDoc().then((smdoc) => { 
 			// update t
 			smdoc.ops.push(opiid);
 			return this_.db.insert(opdoc).then(() => {
+				log('inserted '.blue, opdoc);
 				return this.db.save(smdoc).then(() => {
+					log('saving '.blue, smdoc);
 					var op = new SMOp(this_,opiid);
 					this_.ops[opiid] = op;
-					return op.load().then(() => this_);
+					return op.load().then(() => op);
 				});
 			});
 		});
@@ -152,6 +154,16 @@ SocialMachine.prototype = {
 			obj[k] = v instanceof SMOp ? { type:'smop', iid: v.iid } : v;
 			return obj;
 		},{});
+	},
+	deserialise_op_config:function(config)  { 
+		// todo can contain references to particular methods
+		var ops = this.ops;
+		// this is coming in from the saved version of this op.
+		return _(config).keys().reduce((obj,k) => {
+			var serialv = config[k];
+			obj[k] = serialv.type == 'smop' ? ops[serialv.iid] : serialv;
+			return obj;
+		}, {});
 	},
 	deserialise_op_callable_config:function(config)  { 
 		// todo can contain references to particular methods
@@ -176,7 +188,7 @@ SMVM.prototype = {
 	// establishes the root of a new social machine, creates a new instance variable
 	newSocialMachine:function() { 
 		// creates a new social machine without a config
-		const this_ = this, id = uuid.v1(),config = { _id : id, type :'socialmachine', config:{}, ops:[] };
+		const this_ = this, id = 'social-machine-'+worduuid(), config = { _id : id, type :'socialmachine', config:{}, ops:[] };
 		return this.db.save(config).then(() => { 
 			var sm = this_.machines[id] = new SocialMachine(this, id);
 			return sm.load().then(() => sm);

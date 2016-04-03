@@ -3,6 +3,7 @@
 
 var Promise = require('bluebird'), 
 	_ = require('lodash'),
+	colour = require('colors'),
 	castvote = (smop, config) => {
 		return (args) => {
 			var whitelist_verifier = config.whitelist_verifier, 
@@ -54,7 +55,7 @@ module.exports = {
 					}).then((cvote) => { 
 						return sm.newOp('tallyvote').then((tvote) => {
 							return [wl, cvote, tvote].reduce((mapping, op) => {
-								console.log('op ', op);
+								console.log('op '.green, op);
 								mapping[op.protid] = op.getURLs();
 								return mapping;
 							}, {});

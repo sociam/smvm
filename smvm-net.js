@@ -9,6 +9,7 @@ var _ = require('lodash'),
 	config_file = process.argv.length > 2 ? process.argv[2] : './config.json',
 	config = JSON.parse(fs.readFileSync(config_file)),
 	url = require('url'),
+	config = JSON.parse(fs.readFileSync(config_file)),	
 	os = require('os'),
 	request = require('request-promise'),	
 	db, tracker, peers;
@@ -33,7 +34,7 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 			.uniq().value();
 	},
 	makeFullURLs = (path) => {
-		return getMyInterfaces().map((iface) => { return ['http', iface, path].join(''); });
+		return getMyInterfaces().map((iface) => { return ['http://', iface, ":"+config.port, path].join(''); });
 	},
 	refresh_peers = (host_key) => {
 		// updates our view of peers from tracker and updates tracker with us
@@ -181,9 +182,7 @@ module.exports = {
 					res.status(200).send(""+remote_response);
 				});
 			});
-
 		});
-
 	}
 };
 	
