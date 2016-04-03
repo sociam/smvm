@@ -41,12 +41,12 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 		tracker.collection('nodes').find({_id:config.owner.id}).then(function(d) {
 			// record ourselves in there:
 			// creates { name: <nodename>, id: 'nodeid', addrs: [ { prot: 'http', host:<addr>, port:3000 } ] }
-			console.info('refreshing peers - got peers ', JSON.stringify(d, null, 2));
+			// console.info('refreshing peers - got peers ', JSON.stringify(d, null, 2));
 			var me = _({
 				pubkey:scrypto.getPublicKey(host_key),
 				addrs : getMyInterfaces().map((x) => ({ prot:config.prot, host: x, port: config.port }))
 			}).extend(_.pick(config, ['name','id'])).value();
-			console.log('registering >> ', JSON.stringify(me, null, 2));
+			// console.log('registering >> ', JSON.stringify(me, null, 2));
 			peers = (d && d[0] && d[0].nodes || []).filter((x) => (x.id !== config.id));
 			var new_us = {_id:config.owner.id,nodes:peers.concat(me)};
 			return tracker.collection('nodes').save(new_us);
@@ -55,7 +55,7 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 	askPeer = (peer, path) => {
 		var pa = peer.addrs[0],
 			peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
-		console.log('connecting peer_url ', peer_url);
+		// console.log('connecting peer_url ', peer_url);
 		return new Promise((acc) => {
 			request({uri:peer_url, method:'GET', timeout:1000})
 				.then(acc)
@@ -78,8 +78,6 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 				});
 		});
 	};
-
-
 
 module.exports = {
 	makeFullURLs:makeFullURLs,
@@ -168,7 +166,7 @@ module.exports = {
 				if (chost && chost.id === config.id) {
 					// local commit!
 					console.info('local hit on collection > ', cname);
-					return db.collection(cname).save(_.extend({_id:id}, req.body)).then((resp) => {
+					return db.collection(cname).save(_.extend({_id:id}, req.body)).then(() => {
 						console.info('success inserting ');
 						res.status(200).send('ok');
 					}).catch((err) => {

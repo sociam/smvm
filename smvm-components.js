@@ -3,44 +3,46 @@
 
 const uuid = require('node-uuid'),
 	Promise = require('bluebird'),
-	COLLECTION = COLLECTION,
+	COLLECTION = 'instances',
 	log = (x) => console.log(x),
 	request = require('request-promise'),
 	_ = require('lodash');
 
-var SMOp = (sm, iid) => {
+var SMOp = function(sm, iid) {
 	this.sm = sm;
 	this.iid = iid;
 };
 
 SMOp.prototype = {
-	getIDoc: () => this.sm.smvm.db.findById(this.iid),
+	getIDoc: function() { return this.sm.smvm.db.findById(this.iid); },
 	getRequestUser: (req) => require('./smvm-net').getRequestUser(req),	
-	load:() => { 	
+	load:function() { 	
 		var this_ = this;
+		log("SMOP load");
 		return this.getIDoc().then((idoc) => {
-			this_.deserialise_config(idoc);
+			this_.protid = idoc.protid;
+			this_.config = this_.sm.deserialise_op_config(idoc);
 			return this_.bind();
 		});
 	},
-	getState:(key) => {
+	getState:function(key) {
 		return this.getIDoc().then((idoc) => { 
 			if (idoc.state && idoc.state[key]) { 
 				return idoc.state[key];
 			}
 		});
 	},
-	setState:(vars) => {
+	setState:function(vars) {
 		return this.getIDoc().then((idoc) => { 
 			if (!idoc.state) { idoc.state = {}; }
 			_(idoc.state).extend(vars);
 			return this.sm.smvm.db.save(idoc);
 		});		
-	}
-	getURLs: () => {
+	},
+	getURLs: function() {
 		return require('./smvm-net').makeFullURLs('/instances/'+this.iid);
 	},	
-	makeCallable:() => {
+	makeCallable:function() {
 		// weird POST-GET to deal with persisting values then getitng them.
 		var this_ = this, idoc;
 		return (args) => { 
@@ -53,12 +55,12 @@ SMOp.prototype = {
 			});
 		};
 	},
-	bind:() => {
+	bind:function() {
 		var this_ = this,
 			iid = this.iid,
 			urlpath = '/instances/'+iid,
 			net = require('./smvm-net'),
-			idb = this.sm.smvm.db.collection(COLLECTION);
+			idb = this.sm.smvm.db;
 
 		return this_.getIDoc().then((idoc) => { 
 			// update locations first
@@ -99,10 +101,10 @@ SMOp.prototype = {
 	}
 };
 	
-var SocialMachine = (smvm, id) => {
+var SocialMachine = function(smvm, id) {
 	this.smvm = smvm;
 	this.id = id;
-	this.db = this.smvm.db.collection(COLLECTION);
+	this.db = this.smvm.db;
 	this.ops = {}; // by iid	
 };
 SocialMachine.prototype = {
@@ -113,14 +115,14 @@ SocialMachine.prototype = {
 		// retrieve our doc.
 		return db.findById(this.id).then((idoc) => {
 			idoc.ops.map((opspec) => {
-				smvm.ops[opspec.iid] = this_.ops[opspec.iid] = (smvm.ops[opspec.iid] || new SMOp(opspec.iid));
+				smvm.ops[opspec.iid] = this_.ops[opspec.iid] = (smvm.ops[opspec.iid] || new SMOp(this_,opspec.iid));
 			});
 			return Promise.all(_.values(smvm.ops).map((x) => x.load()));
 		});
 	},
-	getDoc: () => this.db.findById(this.id),	
+	getDoc: function() { return this.db.findById(this.id); },
 	// creating a new instance
-	newOp:(protid, config_args) => {
+	newOp:function(protid, config_args) {
 		const opiid = uuid.v1(),
 			this_ = this,
 			opdoc = { _id:opiid, type:'smop', protid: protid, config:this.serialise_op_config(config_args) };
@@ -130,21 +132,21 @@ SocialMachine.prototype = {
 			smdoc.ops.push(opiid);
 			return this_.db.save(opdoc).then(() => {
 				return this.db.save(smdoc).then(() => {
-					var op = new SMOp(opiid);
+					var op = new SMOp(this_,opiid);
 					this_.ops[opiid] = op;
 					return op;
 				});
 			});
 		});
 	},
-	serialise_op_config:(config) => {
+	serialise_op_config:function(config) {
 		return _(config).keys().reduce((obj,k) => { 
 			var v = config[k];
 			obj[k] = v instanceof SMOp ? { type:'smop', iid: v.iid } : v;
 			return obj;
 		},{});
 	},
-	deserialise_op_callable_config:(config) => { 
+	deserialise_op_callable_config:function(config)  { 
 		// todo can contain references to particular methods
 		var ops = this.ops;
 		// this is coming in from the saved version of this op.
@@ -156,7 +158,7 @@ SocialMachine.prototype = {
 	}
 };
 
-var SMVM = (app, db) => {
+var SMVM = function(app, db) {
 	this.app = app;
 	this.db = db.collection(COLLECTION);
 	this.machines = {};
@@ -165,21 +167,21 @@ var SMVM = (app, db) => {
 
 SMVM.prototype = {
 	// establishes the root of a new social machine, creates a new instance variable
-	newSocialMachine:() => { 
+	newSocialMachine:function() { 
 		// creates a new social machine without a config
-		const id = uuid.v1(),config = { _id : id, type :'socialmachine', config:{}, ops:[] };
+		const this_ = this, id = uuid.v1(),config = { _id : id, type :'socialmachine', config:{}, ops:[] };
 		return this.db.save(config).then(() => { 
-			var sm = new SocialMachine(this, id);
+			var sm = this_.machines[id] = new SocialMachine(this, id);
 			return sm.load().then(() => sm);
 		});
 	},
-	bindInstances:() => {
-		// binds configured instances to listen to appropriate 
-		var machines = this.machines, idb = this.db;
+	bindInstances:function() {
+		// TODO debug
+		var machines = this.machines, idb = this.db, this_ = this;
 		return idb.find({type:'socialmachine'}).then((instances) => {
 			return Promise.all(instances.map((i) => { 
-				machines[i.id] = machines[i.id] || new SocialMachine(this, i.id); // intentional use of this due to => 
-				return machines[i.id].bind().then(() => machines[i.id]);
+				machines[i.id] = machines[i.id] || new SocialMachine(this_, i.id); // intentional use of this due to => 
+				return machines[i.id].load().then(() => machines[i.id]);
 			}));
 		});
 	}

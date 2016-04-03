@@ -42,13 +42,20 @@ module.exports = {
 		return { castvote:castvote, whitelist:whitelist, tallyvote:tallyvote	}; 
 	},
 	makeElection:(smvm) => {
-		 return smvm.newSocialMachine().then((instance) => {
-			return instance.newOp(instance, 'whitelist', ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com']).then((wl) => {
-				return instance.newOp(instance, 'castvote', { whitelist:wl, candidates: [ {id:'http://makeamericangreatagain.com/#trump', name:'donald trump'}, {id:'http://hillary.com/#clinton', name:'hillary clinton'}]})
-					.then((cvote) => { 
-						return instance.newOp(instance, 'tallyvote').then((tvote) => {
+		 return smvm.newSocialMachine().then((sm) => {
+			return sm.newOp('whitelist', ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com']).then((wl) => {
+				return sm.newOp('castvote', 
+					{ 
+						whitelist:wl, 
+						candidates: [ 
+							{id:'http://makeamericangreatagain.com/#trump', name:'donald trump'}, 
+							{id:'http://hillary.com/#clinton', name:'hillary clinton'}
+						]
+					}).then((cvote) => { 
+						return sm.newOp('tallyvote').then((tvote) => {
 							return [wl, cvote, tvote].reduce((mapping, op) => {
-								mapping[op.protid] = op.getURLs()
+								console.log('op ', op);
+								mapping[op.protid] = op.getURLs();
 								return mapping;
 							}, {});
 						});

@@ -11,6 +11,7 @@
     "mongo-oplog": "^1.0.1",
     "mongodb-bluebird": "",
     "multer": "^1.1.0",
+    "node-uuid": "^1.4.7",
     "request-promise": "^2.0.0",
     "url": "^0.11.0",
     "ursa": "^0.9.3",

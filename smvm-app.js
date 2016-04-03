@@ -38,8 +38,10 @@ snet.connect(host_key).then((db) => {
 	// snet kicks things off!
 	snet.register(app, db, host_key);
 	sauth.register(app, db, host_key); // register auth	
-	var smvm = new scomponents.SVMM(app, db);
-	sreg.makeElection(smvm);
+	const smvm = new scomponents.SMVM(app, db),
+		election_server = sreg.makeElection(smvm).then((x) => {
+			console.log("Election Server made ", election_server);
+		});
 });
 
 // register middleware
