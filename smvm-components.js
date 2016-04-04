@@ -122,15 +122,26 @@ SMOp.prototype = {
 					log('attempting to apply with arguments ', args);
 
 					// fast forward through the past!
+					Promise.reduce(past_args, (result, argpair) => {
+						var caller = argpair[0], arg = argpair[1];
+						return fn(_.extend(arg, {auth_user:caller})); 
+					}).then((result) => {
+						// final result
+						console.info('final result!'.cyan, result);
+						res.status(200).send(result);
+					});
+
+					/*
 					Promise.all(past_args.map((argpair) => {
 						var caller = argpair[0], arg = argpair[1];
 						return fn(_.extend(arg, {auth_user:caller}));
-					})).then(() => { 
+					})).then((results) => { 
 						// now current args
 						var result = fn(_.extend(args, {auth_user:this_.getRequestUser(req)})).then((result) => {
 							res.status(200).send(result);
 						});
 					});
+					*/
 				}).catch((e) => res.status(500).send('error '+ e.toString()));
 			});
 		});
