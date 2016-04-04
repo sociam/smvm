@@ -1,6 +1,10 @@
 /* jshint strict:false */
 /* global console, require, process */
 
+// window.auth('http://hip.cat/emax','foo').then((x) => console.log('ok ', x));
+// window.posti('castvote', {ballot:'http://hillary.com/#clinton'}).then((x) => console.log('ok ', x))
+// window.geti('castvote').then((x) => console.log('ok ', x))
+
 var express = require('express'),
 	app = express(),
 	_ = require('lodash'),

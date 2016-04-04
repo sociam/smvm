@@ -12,11 +12,14 @@ var makeToken = () => {
 };
 
 module.exports = { 
-	getRequestUser: (req) => { 
-		var token = req.cookies && req.cookies.authtoken;
+	getRequestUser: function(req) { 
+		var token = this.getAuthToken(req); // req.cookies && req.cookies.authtoken;
 		if (token && conn_by_token[token] !== undefined) {
 			return conn_by_token[token].user;
 		}
+	},
+	getAuthToken:(req) => {
+		return req.cookies && req.cookies.authtoken || req.get('authtoken');		
 	},
 	register: (app, db) => {
 		app.post('/api/auth', (req,res) => {

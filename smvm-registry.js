@@ -37,7 +37,7 @@ var Promise = require('bluebird'),
 	}, whitelist = (sm, config, req) => {
 		return (args) => { 
 			console.info("WHITELIST args ", args, config);
-			return config.acl.indexOf(args.auth_user) >= 0;
+			return config.acl.indexOf(args.id) >= 0;
 		};
 	};
 

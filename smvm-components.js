@@ -45,21 +45,31 @@ SMOp.prototype = {
 	getURLs: function() {
 		return require('./smvm-net').makeFullURLs('/instances/'+this.iid);
 	},	
-	makeCallable:function() {
+	makeCallable:function(req) {
 		// weird POST-GET to deal with persisting values then getitng them.
-		var this_ = this, idoc;
+		var this_ = this, idoc,
+			authtoken = require('./smvm-auth').getAuthToken(req);
 		return (args) => { 
 			return this_.getIDoc().then((idoc_) => { 
 				idoc = idoc_;
-				return Promise.any(idoc.urls.map((url) => {
-					console.log("making call ".red, url, " >> ", args);
-					return request({uri:url, method:'post', body:args, json:true, headers: {
-						contentType:'application/json'
-					}});
-				}));
+				var url = idoc.urls[0];
+				console.log("making POST call ".red, url, " >> ", args, 'authtoken', authtoken);
+				return request({uri:url, method:'post', body:args, json:true, headers: {
+					contentType:'application/json',
+					authtoken:authtoken
+				}});			
+				// return Promise.any(idoc.urls.map((url) => {
+				// 	console.log("making call ".red, url, " >> ", args);
+				// 	return request({uri:url, method:'post', body:args, json:true, headers: {
+				// 		contentType:'application/json'
+				// 	}});
+				// }));
 			}).then(() => {
 				// then get the value
-				return Promise.any(idoc.urls.map((url) => request({url:url, method:'GET' })));
+				var url = idoc.urls[0];
+				console.log("making GET call ".red, url, " >> ");
+				return request({url:url, method:'GET', headers:{ authtoken:authtoken }});
+				// return Promise.any(idoc.urls.map((url) => request({url:url, method:'GET' })));
 			});
 		};
 	},
@@ -93,10 +103,11 @@ SMOp.prototype = {
 			app.get(urlpath, (req,res) => {
 				// now get arguments and apply
 				// invert params by identity
+				log('GET '.yellow, iid, ' ', req.body);
 				this_.getIDoc().then((i) => { 				
 					var protid = i.protid,
 						protocol = require('./smvm-registry').getRegistry()[protid],
-						config = this_.sm.deserialise_op_callable_config(i.config),
+						config = this_.sm.deserialise_op_callable_config(req, i.config),
 						fn = protocol(this_, config),
 						args = req.params;
 
@@ -172,13 +183,13 @@ SocialMachine.prototype = {
 			return obj;
 		}, {});
 	},
-	deserialise_op_callable_config:function(config)  { 
+	deserialise_op_callable_config:function(req, config)  { 
 		// todo can contain references to particular methods
 		var ops = this.ops;
 		// this is coming in from the saved version of this op.
 		return _(config).keys().reduce((obj,k) => {
 			var serialv = config[k];
-			obj[k] = serialv.type == 'smop' ? ops[serialv.iid].makeCallable() : serialv;
+			obj[k] = serialv.type == 'smop' ? ops[serialv.iid].makeCallable(req) : serialv;
 			return obj;
 		}, {});
 	}
