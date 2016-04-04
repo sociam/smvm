@@ -31,12 +31,12 @@ SMOp.prototype = {
 		});
 	},
 	getState:function(key) {
-		return this.getIDoc().then((idoc) => { 
+		return this.sm.getDoc().then((idoc) => { 
 			if (idoc.state) { return idoc.state[key]; }
 		});
 	},
 	setState:function(vars) {
-		return this.getIDoc().then((idoc) => { 
+		return this.sm.getDoc().then((idoc) => { 
 			if (idoc.state === undefined) { idoc.state = {}; }
 			_.extend(idoc.state, vars);
 			console.info("EXTENDING STATE ", idoc.state);
