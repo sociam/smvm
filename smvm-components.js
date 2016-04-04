@@ -119,13 +119,14 @@ SMOp.prototype = {
 					if (!protocol) { return res.status(400).send('no known protocol ' + protid); }
 					if (!fn) { return res.status(500).send('protocol should have returned a function ' + protid); }
 					/// TODO --- next step is to apply the method to the arguments	
-					log('attempting to apply with arguments ', args);
+					log('!! past args '.yellow, past_args);
 
 					// fast forward through the past!
 					Promise.reduce(past_args, (result, argpair) => {
 						var caller = argpair[0], arg = argpair[1];
+						console.log('past ', caller, arg);
 						return fn(_.extend(arg, {auth_user:caller})); 
-					}).then((result) => {
+					}, {}).then((result) => {
 						// final result
 						console.info('final result!'.cyan, result);
 						res.status(200).send(result);
