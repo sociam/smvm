@@ -10,18 +10,20 @@ var Promise = require('bluebird'),
 				candidates = config.candidates,
 				ballot = args.ballot,
 				voter = args.auth_user;
-
-			console.info("CASTVOTE config ", config);
-			console.info("CASTVOTE args ".green, candidates, voter, ballot);
+			console.info("CASTVOTE :: actual args ".yellow, args);
 			return Promise.all([smop.getState('votes'), whitelist({id:voter})]).spread((votes, authorised) => {
 				console.log("getState [votes]", votes);
 				console.log("authorised ", authorised);
+				// console.info("CASTVOTE config ", config);
+				console.info("CASTVOTE args ".green, candidates, voter, ballot);
+
 				if (!authorised) { throw Error("Not authorised to vote in this election"); }
 				if (candidates.map((x) => x.id).indexOf(ballot) >= 0) {
-					votes[voter.id] = ballot;
+					votes = (votes || []).filter((x) => x[0] !== voter).concat([[voter, ballot]]);
+					console.info('!!! new votes ', votes, ' SETTING STATE');					
 					return smop.setState({votes:votes}).then(() => JSON.stringify({vote:votes}));
-				}
-				throw Error("Invalid vote ", ballot);
+				} 
+				return JSON.stringify({vote:votes});				
 			});
 		};
 	}, 
@@ -37,7 +39,7 @@ var Promise = require('bluebird'),
 	}, whitelist = (sm, config, req) => {
 		return (args) => { 
 			console.info("WHITELIST args ", args, config);
-			return config.acl.indexOf(args.id) >= 0;
+			return Promise.resolve(config.acl.indexOf(args.id) >= 0);
 		};
 	};
 

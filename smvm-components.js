@@ -92,10 +92,13 @@ SMOp.prototype = {
 				this_.getIDoc().then((idoc) => { 
 					// post of req, update our document
 					var user = this_.getRequestUser(req),
-						args_by_user = idoc.args_by_user || {};
+						args_by_others = (idoc.args_by_user || []).filter((x) => (x[0] !== user));
+
 					if (!user) { return res.status(400).send('no user'); }
-					args_by_user[md5(user)] = _(req.body).clone();
-					idoc.args_by_user = args_by_user;
+
+					args_by_others.push([user, _(req.body).clone()]);
+					idoc.args_by_user = args_by_others;
+
 					log('POST saving updated idoc '.blue, idoc.args_by_user, idoc);
 					idb.save(idoc).then(() => { res.status(200).send('Ok saved'); }).catch((e) => res.status(500).send('error '+ e.toString()));
 				}).catch((e) => res.status(500).send('error '+ e.toString()));
@@ -109,15 +112,25 @@ SMOp.prototype = {
 						protocol = require('./smvm-registry').getRegistry()[protid],
 						config = this_.sm.deserialise_op_callable_config(req, i.config),
 						fn = protocol(this_, config),
-						args = req.query;
+						args = req.query,
+						past_args = i.args_by_user || [];
 
 					if (!protid) { 	return res.status(400).send('no protocol id specified'); }
 					if (!protocol) { return res.status(400).send('no known protocol ' + protid); }
 					if (!fn) { return res.status(500).send('protocol should have returned a function ' + protid); }
 					/// TODO --- next step is to apply the method to the arguments	
 					log('attempting to apply with arguments ', args);
-					var result = fn(_.extend(args, {auth_user:this_.getRequestUser(req)}));
-					res.status(200).send(result);
+
+					// fast forward through the past!
+					Promise.all(past_args.map((argpair) => {
+						var caller = argpair[0], arg = argpair[1];
+						return fn(_.extend(arg, {auth_user:caller}));
+					})).then(() => { 
+						// now current args
+						var result = fn(_.extend(args, {auth_user:this_.getRequestUser(req)})).then((result) => {
+							res.status(200).send(result);
+						});
+					});
 				}).catch((e) => res.status(500).send('error '+ e.toString()));
 			});
 		});
