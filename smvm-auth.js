@@ -19,6 +19,7 @@ module.exports = {
 		}
 	},
 	getAuthToken:(req) => {
+		// console.info('auth token ', req.path, req.get('authtoken'));
 		return req.cookies && req.cookies.authtoken || req.get('authtoken');		
 	},
 	register: (app, db) => {

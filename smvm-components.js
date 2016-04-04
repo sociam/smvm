@@ -67,8 +67,8 @@ SMOp.prototype = {
 			}).then(() => {
 				// then get the value
 				var url = idoc.urls[0];
-				console.log("making GET call ".red, url, " >> ");
-				return request({url:url, method:'GET', headers:{ authtoken:authtoken }});
+				console.log("making GET call ".red, url, " >> ", args);
+				return request({uri:url, method:'get', qs:args, headers:{ authtoken:authtoken }, json:true});
 				// return Promise.any(idoc.urls.map((url) => request({url:url, method:'GET' })));
 			});
 		};
@@ -103,13 +103,13 @@ SMOp.prototype = {
 			app.get(urlpath, (req,res) => {
 				// now get arguments and apply
 				// invert params by identity
-				log('GET '.yellow, iid, ' ', req.body);
+				log('GET '.yellow, iid, ' ', req.params, req.body, req.originalUrl, req.query);
 				this_.getIDoc().then((i) => { 				
 					var protid = i.protid,
 						protocol = require('./smvm-registry').getRegistry()[protid],
 						config = this_.sm.deserialise_op_callable_config(req, i.config),
 						fn = protocol(this_, config),
-						args = req.params;
+						args = req.query;
 
 					if (!protid) { 	return res.status(400).send('no protocol id specified'); }
 					if (!protocol) { return res.status(400).send('no known protocol ' + protid); }
