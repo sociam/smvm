@@ -6,29 +6,29 @@ var Promise = require('bluebird'),
 	colour = require('colors'),
 	castvote = (smop, config) => {
 		return (args) => {
-			var whitelist_verifier = config.whitelist_verifier, 
+			var whitelist = config.whitelist, 
 				candidates = config.candidates,
 				ballot = args.ballot,
 				voter = args.auth_user;
 
 			console.info("CASTVOTE config ", config);
 			console.info("CASTVOTE args ".green, candidates, voter, ballot);
-			return Promise.all([smop.getState('votes'), whitelist(voter)]).spread((votes, authorised) => {
+			return Promise.all([smop.getState('votes'), whitelist({id:voter})]).spread((votes, authorised) => {
 				console.log("getState [votes]", votes);
 				console.log("authorised ", authorised);
 				if (!authorised) { throw Error("Not authorised to vote in this election"); }
 				if (candidates.map((x) => x.id).indexOf(ballot) >= 0) {
-					votes[voter.id] = ballot.choice;
-					return smop.setState({votes:votes}).then(() => 'ok');
+					votes[voter.id] = ballot;
+					return smop.setState({votes:votes}).then(() => JSON.stringify({vote:votes}));
 				}
-				throw Error("Invalid vote ", ballot.choice);
+				throw Error("Invalid vote ", ballot);
 			});
 		};
 	}, 
 	tallyvote = (sm, config) => { 
 		return () => {
 			return sm.getState('votes').then((votes) => { 
-				return _.values(votes).reduce((counts, b) => { 
+				return _.values(votes).reduce((counts, b) => {
 					counts[b] = counts[b] + 1 || 1;
 					return counts;
 				}, {});

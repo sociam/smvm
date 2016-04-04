@@ -6,6 +6,7 @@ const uuid = require('node-uuid'),
 	worduuids = require('random-words'),
 	worduuid = () => worduuids({exactly:5,join:'-'}),
 	COLLECTION = 'instances',
+	md5 = require('md5'),
 	colors = require('colors'),	
 	log = function() { console.log.apply(console,arguments); },
 	request = require('request-promise'),
@@ -50,7 +51,12 @@ SMOp.prototype = {
 		return (args) => { 
 			return this_.getIDoc().then((idoc_) => { 
 				idoc = idoc_;
-				return Promise.any(idoc.urls.map((url) => request({url:url, method:'POST', contentType:'application/json', data:JSON.stringify(args) })));
+				return Promise.any(idoc.urls.map((url) => {
+					console.log("making call ".red, url, " >> ", args);
+					return request({uri:url, method:'post', body:args, json:true, headers: {
+						contentType:'application/json'
+					}});
+				}));
 			}).then(() => {
 				// then get the value
 				return Promise.any(idoc.urls.map((url) => request({url:url, method:'GET' })));
@@ -72,13 +78,13 @@ SMOp.prototype = {
 			return idb.save(idoc);
 		}).then(() => { 
 			app.post(urlpath, (req,res) => { 
-				log('POST '.yellow, iid, ' ', req.params);
+				log('POST '.yellow, iid, ' ', req.body);
 				this_.getIDoc().then((idoc) => { 
 					// post of req, update our document
 					var user = this_.getRequestUser(req),
 						args_by_user = idoc.args_by_user || {};
 					if (!user) { return res.status(400).send('no user'); }
-					args_by_user[user] = _(req.params).clone();
+					args_by_user[md5(user)] = _(req.body).clone();
 					idoc.args_by_user = args_by_user;
 					log('POST saving updated idoc '.blue, idoc.args_by_user, idoc);
 					idb.save(idoc).then(() => { res.status(200).send('Ok saved'); }).catch((e) => res.status(500).send('error '+ e.toString()));
