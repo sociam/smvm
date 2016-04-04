@@ -30,8 +30,9 @@ var Promise = require('bluebird'),
 	tallyvote = (sm, config) => { 
 		return () => {
 			return sm.getState('votes').then((votes) => { 
-				return _.values(votes).reduce((counts, b) => {
-					counts[b] = counts[b] + 1 || 1;
+				return votes.reduce((counts, votepair) => {
+					var voter = votepair[0], ballot = votepair[1];
+					counts[ballot] = counts[ballot] + 1 || 1;
 					return counts;
 				}, {});
 			});

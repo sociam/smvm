@@ -37,8 +37,9 @@ SMOp.prototype = {
 	},
 	setState:function(vars) {
 		return this.getIDoc().then((idoc) => { 
-			if (!idoc.state) { idoc.state = {}; }
+			if (idoc.state === undefined) { idoc.state = {}; }
 			_.extend(idoc.state, vars);
+			console.info("EXTENDING STATE ", idoc.state);
 			return this.sm.smvm.db.save(idoc);
 		});		
 	},
