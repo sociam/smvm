@@ -131,6 +131,8 @@ SMOp.prototype = {
 						// final result
 						console.info('final result!'.cyan, result);
 						res.status(200).send(result);
+					}).catch((e) => {
+						res.status(400).send("error - "+e.toString());
 					});
 
 					/*

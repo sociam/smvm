@@ -7,6 +7,10 @@ trust, and partitioning, limits the propagation of sensitive
 information while providing powerful social computational 
 primitives.
 
+For a short introduction, take a look at this:
+
+http://hip.cat/stuff/sociam-dism-april-6-2016.pdf
+
 ## set up:
 
 # install bower dependencies

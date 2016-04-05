@@ -1,35 +1,42 @@
 /* jshint strict:false */
-/* global require, process, module */
+/* global require, console, module */
 
 var Promise = require('bluebird'), 
-	_ = require('lodash'),
+	dism = require('./smvm-components'),
 	colour = require('colors'),
-	castvote = (smop, config) => {
-		return (args) => {
-			var whitelist = config.whitelist, 
-				candidates = config.candidates,
-				ballot = args.ballot,
-				voter = args.auth_user;
-			console.info("CASTVOTE :: actual args ".yellow, args);
-			return Promise.all([smop.getState('votes'), whitelist({id:voter})]).spread((votes, authorised) => {
-				console.log("getState [votes]", votes);
-				console.log("authorised ", authorised);
-				// console.info("CASTVOTE config ", config);
-				console.info("CASTVOTE args ".green, candidates, voter, ballot);
 
-				if (!authorised) { throw Error("Not authorised to vote in this election"); }
-				if (candidates.map((x) => x.id).indexOf(ballot) >= 0) {
-					votes = (votes || []).filter((x) => x[0] !== voter).concat([[voter, ballot]]);
-					console.info('!!! new votes ', votes, ' SETTING STATE');					
-					return smop.setState({votes:votes}).then(() => JSON.stringify({vote:votes}));
-				} 
-				return JSON.stringify({vote:votes});				
+	castvote = (smop, config) => {
+
+		return (args) => {
+			var whitelist = config.whitelist,  // "config" is set at configuration time
+				candidates = config.candidates,
+				ballot = args.ballot, // "Args" are passed in through REST calls
+				voter = args.auth_user;
+
+			return Promise.all([smop.getState('votes'), whitelist({id:voter})]).spread((votes, authorised) => {
+				// check candidate authorised through remote call to whitelist op
+				if (!authorised) { 
+					throw Error("Not authorised to vote in this election"); 
+				}
+				// check validity of ballot
+				if (candidates.map((x) => x.id).indexOf(ballot) < 0) {	
+					throw Error("Not a valid candidate, check your ballot again");		
+				}
+
+				// store vote for later tallying. note that this creates secret information
+				// in the voter state, which persists with the instance.
+				votes = (votes || []).filter((x) => x[0] !== voter).concat([[voter, ballot]]);
+
+				return smop.setState({votes:votes}).then(() => "cool!");
 			});
 		};
 	}, 
+
 	tallyvote = (sm, config) => { 
 		return () => {
+			// get state from the social machine instance
 			return sm.getState('votes').then((votes) => { 
+				// now reduce into a counts
 				return votes.reduce((counts, votepair) => {
 					var voter = votepair[0], ballot = votepair[1];
 					counts[ballot] = counts[ballot] + 1 || 1;
@@ -37,10 +44,12 @@ var Promise = require('bluebird'),
 				}, {});
 			});
 		};
-	}, whitelist = (sm, config, req) => {
+	}, 
+
+	whitelist = (sm, config, req) => {
 		return (args) => { 
-			console.info("WHITELIST args ", args, config);
-			return Promise.resolve(config.acl.indexOf(args.id) >= 0);
+			// auth_user is a special variable
+			return Promise.resolve(config.acl.indexOf(args.auth_user) >= 0);
 		};
 	};
 
@@ -55,7 +64,11 @@ module.exports = {
 	},
 	makeElection:(smvm) => {
 		 return smvm.newSocialMachine().then((sm) => {
-			return sm.newOp('whitelist', { acl : ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com'] }).then((wl) => {
+			return sm.newOp('whitelist', 
+				{ 
+					acl : ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com'] 
+				}
+			).then((wl) => {
 				return sm.newOp('castvote', 
 					{ 
 						whitelist:wl, 
@@ -74,7 +87,31 @@ module.exports = {
 					});
 				});
 			});		
+	},
+	makeClosedElection :(smvm) => {
+		var election = new dism.SocialMachine(),
+			whitelist = new dism.SMOp('whitelist', 
+				{ acl : ['http://hip.cat/emax', 'r@reubenbinns.com', 'jun.zhao@junzhao.com'] }
+			),
+			castvote = new dism.SMOp('castvote', { 
+						whitelist:whitelist, 
+						candidates: [ 
+							{id:'http://makeamericangreatagain.com/#trump', name:'donald trump'}, 
+							{id:'http://hillary.com/#clinton', name:'hillary clinton'}
+						]
+					}),
+			tallyvote = new dism.SMOp('tallyvote');
+
+		smvm.addSM(election);
+		election.addOp(whitelist, castvote, tallyvote);
+		return election.load().then(() => {
+			return [whitelist, castvote, tallyvote].reduce((mapping, op) => {
+					mapping[op.protid] = op.getURLs();
+					return mapping;
+			}, {});
+		});
 	}
+
 };
 
 
