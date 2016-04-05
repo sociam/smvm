@@ -17,20 +17,18 @@ http://hip.cat/stuff/sociam-dism-april-6-2016.pdf
 ## set up:
 
 ### install bower dependencies
-bower install
+    bower install
 
 ### install npm dependencies
-npm install
+    npm install
 
 ### running your own mongo instance
 
 - install mongo 
 - run : 
-
     mongod --replSet $HOSTNAME --dbpath <path to data dir>
 
-- start replication
-
+- start replication:
     echo $HOSTNAME
     mongo
     rs.initiate({_id: "<hostname>", members: [{_id: 0, host: "127.0.0.1:12345"}]})
