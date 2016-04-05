@@ -54,3 +54,16 @@ SMVM app is designed for demo purposes only so it manually creates specific
 social machines, to be refactored later. Edit the app.listen startup code
 to make it call your new social machine constructor (declared in smvm-registry)
 instead.
+
+### run!
+
+    node smvm-app.js <config file>
+
+You should see each of the ops come up with their own REST endpoints.
+
+### open up a browser and interact!
+
+    open a browser to http://localhost:3000 - now you should be able to
+    use the window.posti() and window.geti() methods from the console.
+    There will be a nice user interface coming soon :)
+
