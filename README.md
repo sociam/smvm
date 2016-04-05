@@ -1,5 +1,5 @@
 
-![sociam logo] (https://www.cs.ox.ac.uk/files/7665/SOCIAM-Col-logo.png =250px)
+![sociam logo] (https://www.cs.ox.ac.uk/files/7665/SOCIAM-Col-logo.png)
 
 # the decentralised social machines project
 
