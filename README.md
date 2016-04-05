@@ -26,15 +26,15 @@ http://hip.cat/stuff/sociam-dism-april-6-2016.pdf
 
 - install mongo 
 - run
-
+```
     mongod --replSet $HOSTNAME --dbpath <path to data dir>
-
+```
 - start replication
-
+```
     echo $HOSTNAME
     mongo
     rs.initiate({_id: "<hostname>", members: [{_id: 0, host: "127.0.0.1:12345"}]})
-
+```
 ### fork a config, edit the parameters to point to your mongo instance
 
     cp config.sample.json config.json
