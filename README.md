@@ -63,7 +63,7 @@ You should see each of the ops come up with their own REST endpoints.
 
 ### open up a browser and interact!
 
-    open a browser to http://localhost:3000 - now you should be able to
-    use the window.posti() and window.geti() methods from the console.
-    There will be a nice user interface coming soon :)
+open a browser to http://localhost:3000 - now you should be able to
+use the window.posti() and window.geti() methods from the console.
+There will be a nice user interface coming soon :)
 
