@@ -21,6 +21,7 @@
     "lodash": "",
     "jQuery": "",
     "less": "",
+    "bootstrap":"",
     "angular": "",
     "bluebird": "",
     "pouchdb":"",
