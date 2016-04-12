@@ -56,7 +56,6 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 	askPeer = (peer, path) => {
 		var pa = peer.addrs[0],
 			peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
-		// console.log('connecting peer_url ', peer_url);
 		return new Promise((acc) => {
 			request({uri:peer_url, method:'GET', timeout:1000})
 				.then(acc)
@@ -71,7 +70,7 @@ var getLocalCollections = () => db.collections().then((sC) => { return sC.map((x
 			peer_url = [pa.prot,'://',pa.host,':',''+pa.port, path].join('');
 
 		return new Promise((acc) => {
-			request({method:'POST', uri:peer_url, timeout:1000, body: payload, json:true, headers: { 'content-type': 'application/json' }})
+			request({method:'POST', uri:peer_url, timeout:1000, body:payload, json:true, headers: { 'content-type': 'application/json' }})
 				.then(acc)
 				.catch((err) => {
 					console.error('could not connect to peer ', peer_url);

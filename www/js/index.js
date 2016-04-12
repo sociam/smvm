@@ -1,9 +1,7 @@
 /* global console,  angular, $, window */
 
-angular.module('dtou', [])
-    .controller('microblog', function($scope) {
-
-
+angular.module('smvm', [])
+    .controller('main', function($scope) {
         window.post = (url, args) => {
             return $.ajax({url:url,
                     contentType:'application/json',
@@ -25,17 +23,12 @@ angular.module('dtou', [])
                     method:'GET'
             });
         };
-
         window.auth = (username, password) => {
             return window.post('/api/newuser', {username:username,password:password}).then(() => {
                 console.log('called newuser');
                 return window.post('/api/auth', {username:username,password:password});
             });
         };
-
-
-
-        /*
         window.postDoc = (collection, id, doc, dtou) => {
             return $.ajax({url:`/api/${collection}/${id}`,
                     contentType:'application/json',
@@ -53,5 +46,4 @@ angular.module('dtou', [])
                 } : undefined
             }); // .then((x) => {console.log(x); return x;});
         };
-        */
     });
