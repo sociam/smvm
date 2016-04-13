@@ -182,6 +182,12 @@ module.exports = {
 				});
 			});
 		});
+
+		app.get('/api/generateKey', (req,res) => {
+			var scrypto = require('./smvm-crypto'),
+				skey = scrypto.create_keypair().toPrivatePem().toString();
+			res.status(200).send(skey);
+		});
 	}
 };
 	

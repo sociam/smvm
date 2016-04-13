@@ -1,7 +1,31 @@
 /* global console,  angular, $, window */
 
 angular.module('smvm', [])
-    .controller('main', function($scope) {
+    .service( 'network', function() {
+        var post = (url, args) => {
+            return Promise.resolve($.ajax({url:url, contentType:'application/json', method:'post',data:JSON.stringify(args) }));
+        }, get = (url, args) => {
+            return Promise.resolve($.ajax({url:url, contentType:'application/json', method:'GET', data:args}));
+        };
+        this.checkAuth = () => get('/api/check');
+        this.register = (username, password) => post('/api/newuser', {username:username,password:password});
+        this.auth = (username, password) => post('/api/auth', {username:username,password:password});
+        this.generateKey = () => get('/api/generateKey');
+    }).service('storage', function() {
+        var this_ = this,
+            name="smvm",
+            PDB_OPTIONS = {};
+        this._loadp = new Promise((acc,rej) => {
+            new PouchDB(name, PDB_OPTIONS, function(err, db) {
+                if (!err) { 
+                    this_.db = db; 
+                    return acc(db);
+                }
+                throw err;
+            });
+        });
+        this.getDB = () => this._loadp;
+    }).controller('main', function($scope) {
         window.post = (url, args) => {
             return $.ajax({url:url,
                     contentType:'application/json',
